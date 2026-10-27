@@ -323,29 +323,30 @@ async def search_rom(
         ),
     )
 
+    def cover_match(name: str) -> dict[str, Any]:
+        return merged_dict.setdefault(
+            name,
+            {
+                "name": name,
+                "platform_id": rom.platform_id,
+                "is_identified": True,
+                "is_unidentified": False,
+            },
+        )
+
     for name, sgdb_rom in _without_failures(sgdb_roms, "SteamGridDB"):
         if sgdb_rom["sgdb_id"]:
-            merged_dict[name] = {
-                **merged_dict[name],
-                "sgdb_id": sgdb_rom.get("sgdb_id", ""),
-                "sgdb_url_cover": sgdb_rom.get("url_cover", ""),
-            }
+            cover_match(name).update(
+                sgdb_id=sgdb_rom.get("sgdb_id", ""),
+                sgdb_url_cover=sgdb_rom.get("url_cover", ""),
+            )
 
     for name, libretro_rom in _without_failures(libretro_roms, "Libretro"):
         if libretro_rom["libretro_id"]:
-            merged_dict[name] = {
-                **merged_dict.get(
-                    name,
-                    {
-                        "name": name,
-                        "platform_id": rom.platform_id,
-                        "is_identified": True,
-                        "is_unidentified": False,
-                    },
-                ),
-                "libretro_id": libretro_rom.get("libretro_id", ""),
-                "libretro_url_cover": libretro_rom.get("url_cover", ""),
-            }
+            cover_match(name).update(
+                libretro_id=libretro_rom.get("libretro_id", ""),
+                libretro_url_cover=libretro_rom.get("url_cover", ""),
+            )
 
     matched_roms = list(merged_dict.values())
 

@@ -80,7 +80,7 @@ const stubs = {
   RDropzone: {
     emits: ["files"],
     template:
-      "<button class=\"dropzone\" @click=\"$emit('files', [{ name: 'game.rom', size: 3 }])\" />",
+      "<div><button class=\"dropzone\" @click=\"$emit('files', [{ name: 'game.rom', size: 3 }])\" /><button class=\"dropzone-mixed\" @click=\"$emit('files', [{ name: 'good.rom', size: 3 }, { name: 'bad.rom', size: 3 }])\" /></div>",
   },
   RBtn: {
     props: ["disabled"],
@@ -151,6 +151,28 @@ describe("Upload follow-up scan", () => {
     vi.runAllTimers();
 
     expect(emit).toHaveBeenCalledOnce();
+    expect(emit).toHaveBeenCalledWith("scan", {
+      platforms: [7],
+      type: "quick",
+      apis: [],
+    });
+  });
+
+  it("scans committed files when another upload fails", async () => {
+    uploadRoms.mockReset();
+    uploadRoms.mockResolvedValueOnce([
+      { status: "fulfilled" },
+      { status: "rejected" },
+    ]);
+    const wrapper = mount(Upload, { global: { stubs } });
+    await flushPromises();
+    await wrapper.get(".platform-select").trigger("click");
+    await wrapper.get(".dropzone-mixed").trigger("click");
+    await nextTick();
+    await wrapper.get('[data-testid="upload-submit"]').trigger("click");
+    await flushPromises();
+    vi.runAllTimers();
+
     expect(emit).toHaveBeenCalledWith("scan", {
       platforms: [7],
       type: "quick",

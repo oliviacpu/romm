@@ -281,19 +281,18 @@ async function upload() {
 
       // Give the backend a beat to finish writing before we ask it to
       // scan, v1 uses a 2s buffer for the same reason.
-      if (fail === 0)
-        setTimeout(() => {
-          const started = startScan([
-            {
-              platforms: [platformId],
-              type: "quick",
-              apis: heartbeatStore
-                .getEnabledMetadataOptions()
-                .map((s) => s.value),
-            },
-          ]);
-          if (started) scanningUploaded.value = ok;
-        }, 2000);
+      setTimeout(() => {
+        const started = startScan([
+          {
+            platforms: [platformId],
+            type: "quick",
+            apis: heartbeatStore
+              .getEnabledMetadataOptions()
+              .map((s) => s.value),
+          },
+        ]);
+        if (started) scanningUploaded.value = ok;
+      }, 2000);
 
       // Clear the list so the next batch starts fresh; keep the
       // platform selected so a user can chain uploads.

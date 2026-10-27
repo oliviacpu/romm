@@ -90,7 +90,16 @@ def test_steam_matches_carry_their_id_and_cover(client, access_token, rom):
     assert steam_match["steam_url_cover"] == "https://cdn/4.jpg"
 
 
-def test_libretro_only_search_returns_an_artwork_match(client, access_token, rom):
+@pytest.mark.parametrize(
+    ("sgdb_result", "expected_sgdb_id"),
+    [
+        ({"sgdb_id": None}, None),
+        ({"sgdb_id": 42, "url_cover": "https://cdn/skies-sgdb.png"}, 42),
+    ],
+)
+def test_artwork_only_search_returns_a_match(
+    client, access_token, rom, sgdb_result, expected_sgdb_id
+):
     handlers = (
         "meta_igdb_handler",
         "meta_ss_handler",
@@ -118,6 +127,11 @@ def test_libretro_only_search_returns_an_artwork_match(client, access_token, rom
             )
         stack.enter_context(
             patch(
+                "endpoints.search.meta_libretro_handler.is_enabled", return_value=True
+            )
+        )
+        stack.enter_context(
+            patch(
                 "endpoints.search.meta_libretro_handler.get_rom",
                 new=AsyncMock(
                     return_value=LibretroRom(
@@ -126,13 +140,22 @@ def test_libretro_only_search_returns_an_artwork_match(client, access_token, rom
                 ),
             )
         )
+        stack.enter_context(
+            patch(
+                "endpoints.search.meta_sgdb_handler.get_details_by_names",
+                new=AsyncMock(return_value=sgdb_result),
+            )
+        )
         response = client.get(
             f"/api/search/roms?rom_id={rom.id}&search_term=Skies+of+Arcadia&search_by=name",
             headers={"Authorization": f"Bearer {access_token}"},
         )
     assert response.status_code == status.HTTP_200_OK
+    assert len(response.json()) == 1
     assert response.json()[0]["name"] == "Skies of Arcadia"
     assert response.json()[0]["libretro_url_cover"] == "https://cdn/skies.png"
+    assert response.json()[0]["sgdb_id"] == expected_sgdb_id
+    assert response.json()[0]["libretro_id"] == "cover-id"
 
 
 def test_a_failing_provider_costs_only_its_own_match_when_searching_by_id(
