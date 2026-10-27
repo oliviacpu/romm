@@ -17,16 +17,29 @@
 //      upload more) but clear the file list. A scan is kicked off
 //      automatically, unless one is already running, so newly arrived
 //      files get matched.
-import { RBtn, RChip, RDropzone, RIcon } from "@v2/lib";
+import { RBtn, RChip, RDropzone, RIcon, RTextField } from "@v2/lib";
 import { computed, onMounted, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import platformApi from "@/services/api/platform";
 import romApi from "@/services/api/rom";
+import type { PlatformUploadPolicy } from "@/services/api/rom";
 import storeHeartbeat from "@/stores/heartbeat";
 import type { Platform } from "@/stores/platforms";
+import storeScanning from "@/stores/scanning";
 import storeUpload from "@/stores/upload";
 import { formatBytes } from "@/utils";
+import {
+  gameFolderPlan,
+  suggestedGameName,
+  type GameFolderError,
+} from "@/utils/gameFolderUpload";
+import { uploadPath } from "@/utils/uploadFiles";
+import {
+  folderIssue,
+  singleFileIssue,
+  type UploadIssue,
+} from "@/utils/uploadPolicy";
 import PlatformSelect from "@/v2/components/shared/PlatformSelect.vue";
 import { useScanTrigger } from "@/v2/composables/useScanTrigger";
 import { useSnackbar } from "@/v2/composables/useSnackbar";
@@ -36,6 +49,7 @@ const route = useRoute();
 const snackbar = useSnackbar();
 const heartbeatStore = storeHeartbeat();
 const uploadStore = storeUpload();
+const scanningStore = storeScanning();
 const { startScan } = useScanTrigger();
 
 const files = ref<File[]>([]);
@@ -43,6 +57,11 @@ const supportedPlatforms = ref<Platform[]>([]);
 const platformsLoading = ref(false);
 const selectedPlatformSlug = ref<string | null>(null);
 const uploading = ref(false);
+const multiDisc = ref(false);
+const gameName = ref("");
+const uploadPolicies = ref<Record<string, PlatformUploadPolicy>>({});
+const validationIssue = ref<UploadIssue | null>(null);
+const scanningUploaded = ref(0);
 
 const uploadDz = ref<InstanceType<typeof RDropzone> | null>(null);
 
@@ -50,7 +69,11 @@ const uploadDz = ref<InstanceType<typeof RDropzone> | null>(null);
 async function loadPlatforms() {
   platformsLoading.value = true;
   try {
-    const { data } = await platformApi.getSupportedPlatforms();
+    const [{ data }, policies] = await Promise.all([
+      platformApi.getSupportedPlatforms(),
+      romApi.getUploadPolicies(),
+    ]);
+    uploadPolicies.value = policies;
     supportedPlatforms.value = data
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -97,6 +120,15 @@ onMounted(() => {
 });
 
 watch(() => route.query.platform, applyPreselectFromQuery);
+watch([selectedPlatformSlug, multiDisc, gameName], () => {
+  validationIssue.value = null;
+});
+watch(
+  () => scanningStore.scanning,
+  (scanning) => {
+    if (!scanning) scanningUploaded.value = 0;
+  },
+);
 
 const selectedPlatform = computed<Platform | null>(() => {
   if (selectedPlatformSlug.value === null) return null;
@@ -106,31 +138,113 @@ const selectedPlatform = computed<Platform | null>(() => {
     ) ?? null
   );
 });
+const selectedPolicy = computed(() =>
+  selectedPlatform.value
+    ? uploadPolicies.value[selectedPlatform.value.fs_slug]
+    : undefined,
+);
+
+const folderMode = computed(() =>
+  files.value.some((file) => uploadPath(file).includes("/")),
+);
+const folderPlan = computed(() =>
+  folderMode.value
+    ? gameFolderPlan(files.value, gameName.value, multiDisc.value)
+    : null,
+);
+const formatIssue = computed(() =>
+  folderMode.value ? null : singleFileIssue(files.value, selectedPolicy.value),
+);
+const currentIssue = computed(() => validationIssue.value ?? formatIssue.value);
+const supportedFormats = computed(
+  () => selectedPolicy.value?.launch.join(", ") ?? "",
+);
+
+function issueMessage(issue: UploadIssue): string {
+  if (issue.kind === "unsupported") {
+    return t("common.upload-format-rejected", {
+      file: issue.file,
+      formats: supportedFormats.value,
+    });
+  }
+  if (issue.kind === "needs-folder") {
+    return t("common.upload-folder-required", { file: issue.file });
+  }
+  return t("common.upload-folder-invalid", {
+    file: "file" in issue ? issue.file : issue.disc || gameName.value,
+  });
+}
+const folderErrorKeys: Record<GameFolderError, string> = {
+  "one-folder": "common.folder-one-game",
+  "disc-folders": "common.folder-disc-folders",
+  "disc-order": "common.folder-disc-order",
+  "game-name": "common.folder-game-name",
+  "duplicate-path": "common.folder-duplicate-path",
+};
+
+function displayPath(file: File): string {
+  const plan = folderPlan.value;
+  return plan?.ok ? `${plan.name}/${plan.paths.get(file)}` : uploadPath(file);
+}
 
 // ── File handling ───────────────────────────────────────────────
 function addFiles(picked: File[]) {
   if (!picked.length) return;
-  // De-dupe by name, matches v1 behaviour.
-  const seen = new Set(files.value.map((f) => f.name));
-  const fresh = picked.filter((f) => !seen.has(f.name));
+  if (uploading.value) return;
+  validationIssue.value = null;
+  const seen = new Set(files.value.map(uploadPath));
+  const fresh = picked.filter((f) => {
+    const path = uploadPath(f);
+    if (
+      f.name === ".DS_Store" ||
+      f.name.startsWith("._") ||
+      f.name === "Thumbs.db"
+    ) {
+      return false;
+    }
+    if (seen.has(path)) return false;
+    seen.add(path);
+    return true;
+  });
   if (fresh.length > 0) {
+    if (files.value.length === 0 && uploadPath(fresh[0]!).includes("/")) {
+      gameName.value = suggestedGameName(uploadPath(fresh[0]!));
+    }
     files.value = [...files.value, ...fresh];
   }
 }
 
 function removeFile(name: string) {
-  files.value = files.value.filter((f) => f.name !== name);
+  validationIssue.value = null;
+  files.value = files.value.filter((f) => uploadPath(f) !== name);
+  if (files.value.length === 0) gameName.value = "";
+}
+
+function fileReadError(error: Error) {
+  snackbar.error(t("common.unable-to-upload-roms", { error: error.message }));
 }
 
 // ── Upload ──────────────────────────────────────────────────────
 async function upload() {
   const platform = selectedPlatform.value;
   if (!platform || files.value.length === 0 || uploading.value) return;
+  const plan = folderPlan.value;
+  if (folderMode.value && (!plan || !plan.ok)) return;
+  if (formatIssue.value) return;
   uploading.value = true;
+  const batch = [...files.value];
 
   let platformId = platform.id;
 
   try {
+    const issue = plan?.ok
+      ? await folderIssue(plan.paths, selectedPolicy.value)
+      : singleFileIssue(batch, selectedPolicy.value);
+    if (issue) {
+      validationIssue.value = issue;
+      return;
+    }
+    validationIssue.value = null;
     // Sentinel id=-1: fs_slug exists but no Platform yet. Create one
     // before pushing ROMs into it, same approach as v1.
     if (platformId === -1) {
@@ -143,10 +257,11 @@ async function upload() {
       });
     }
 
-    const responses = await romApi.uploadRoms({
-      platformId,
-      filesToUpload: files.value,
-    });
+    const responses = plan?.ok
+      ? await romApi
+          .uploadGameFolder({ platformId, name: plan.name, paths: plan.paths })
+          .then(() => batch.map(() => ({ status: "fulfilled" as const })))
+      : await romApi.uploadRoms({ platformId, filesToUpload: batch });
 
     const ok = responses.filter((r) => r.status === "fulfilled").length;
     const fail = responses.filter((r) => r.status === "rejected").length;
@@ -166,21 +281,29 @@ async function upload() {
 
       // Give the backend a beat to finish writing before we ask it to
       // scan, v1 uses a 2s buffer for the same reason.
-      setTimeout(() => {
-        startScan([
-          {
-            platforms: [platformId],
-            type: "quick",
-            apis: heartbeatStore
-              .getEnabledMetadataOptions()
-              .map((s) => s.value),
-          },
-        ]);
-      }, 2000);
+      if (fail === 0)
+        setTimeout(() => {
+          const started = startScan([
+            {
+              platforms: [platformId],
+              type: "quick",
+              apis: heartbeatStore
+                .getEnabledMetadataOptions()
+                .map((s) => s.value),
+            },
+          ]);
+          if (started) scanningUploaded.value = ok;
+        }, 2000);
 
       // Clear the list so the next batch starts fresh; keep the
       // platform selected so a user can chain uploads.
-      files.value = [];
+      files.value = batch.filter(
+        (_, index) => responses[index]?.status === "rejected",
+      );
+      if (files.value.length === 0) {
+        gameName.value = "";
+        multiDisc.value = false;
+      }
     }
   } catch (err) {
     const e = err as {
@@ -205,6 +328,9 @@ async function upload() {
 
 <template>
   <div class="r-v2-upload r-v2-section-stack">
+    <p v-if="scanningUploaded" role="status">
+      {{ t("common.uploaded-and-scanning", { ok: scanningUploaded }) }}
+    </p>
     <div class="r-v2-upload__top">
       <PlatformSelect
         v-model="selectedPlatformSlug"
@@ -217,7 +343,7 @@ async function upload() {
         prefix-label="stacked"
         :icon-size="22"
         :search-placeholder="t('common.search')"
-        :disabled="platformsLoading"
+        :disabled="platformsLoading || uploading"
       >
         <template #prefix-label>
           <RIcon icon="mdi-controller" size="14" />
@@ -225,10 +351,32 @@ async function upload() {
         </template>
       </PlatformSelect>
       <RBtn
+        variant="outlined"
+        :aria-pressed="multiDisc"
+        :disabled="uploading"
+        @click="multiDisc = !multiDisc"
+      >
+        {{ t("common.multi-disc-game") }}
+      </RBtn>
+      <RBtn
+        variant="outlined"
+        prepend-icon="mdi-folder-plus-outline"
+        :disabled="uploading"
+        @click="uploadDz?.openDirectory()"
+      >
+        {{ t("common.add-folder") }}
+      </RBtn>
+      <RBtn
         variant="flat"
         color="primary"
         prepend-icon="mdi-cloud-upload-outline"
-        :disabled="files.length === 0 || !selectedPlatform"
+        data-testid="upload-submit"
+        :disabled="
+          files.length === 0 ||
+          !selectedPlatform ||
+          !!currentIssue ||
+          (folderMode && !folderPlan?.ok)
+        "
         :loading="uploading"
         @click="upload"
       >
@@ -236,17 +384,42 @@ async function upload() {
       </RBtn>
     </div>
 
+    <div v-if="folderMode || multiDisc" class="r-v2-upload__folder-options">
+      <RTextField
+        v-model="gameName"
+        :label="t('common.folder-game-name-label')"
+      />
+      <p>
+        {{
+          t(multiDisc ? "common.multi-disc-hint" : "common.game-folder-hint")
+        }}
+      </p>
+      <p v-if="folderPlan && !folderPlan.ok" role="alert">
+        {{ t(folderErrorKeys[folderPlan.error]) }}
+      </p>
+    </div>
+    <p v-if="selectedPolicy" class="r-v2-upload__guidance">
+      {{ t("common.upload-supported-formats", { formats: supportedFormats }) }}
+    </p>
+    <p v-if="currentIssue" class="r-v2-upload__error" role="alert">
+      {{ issueMessage(currentIssue) }}
+    </p>
+
     <!-- Drop zone, CTA when empty, file list (with drag overlay) when
            populated. -->
     <RDropzone
       v-if="files.length === 0"
+      ref="uploadDz"
       fill
       :title="t('common.dropzone-title')"
       :hint="t('common.dropzone-description')"
       :active-title="t('common.dropzone-drag-over')"
       :input-label="t('common.upload-roms')"
+      :directory-input-label="t('common.add-folder')"
+      :disabled="uploading"
       multiple
       @files="addFiles"
+      @error="fileReadError"
     />
     <RDropzone
       v-else
@@ -255,14 +428,19 @@ async function upload() {
       overlay
       :release-label="t('common.dropzone-drag-over')"
       :input-label="t('common.upload-roms')"
+      :directory-input-label="t('common.add-folder')"
+      :disabled="uploading"
       multiple
       @files="addFiles"
+      @error="fileReadError"
     >
       <div class="r-v2-upload__filled">
         <ul class="r-v2-upload__list">
-          <li v-for="f in files" :key="f.name" class="r-v2-upload__row">
+          <li v-for="f in files" :key="uploadPath(f)" class="r-v2-upload__row">
             <RIcon icon="mdi-file-outline" size="14" />
-            <span class="r-v2-upload__row-name">{{ f.name }}</span>
+            <span class="r-v2-upload__row-name" :title="displayPath(f)">{{
+              displayPath(f)
+            }}</span>
             <RChip size="x-small" variant="translucent">
               {{ formatBytes(f.size) }}
             </RChip>
@@ -272,7 +450,8 @@ async function upload() {
               icon="mdi-close"
               color="danger"
               :aria-label="t('common.remove')"
-              @click="removeFile(f.name)"
+              :disabled="uploading"
+              @click="removeFile(uploadPath(f))"
             />
           </li>
         </ul>
@@ -284,6 +463,7 @@ async function upload() {
             variant="flat"
             color="primary"
             prepend-icon="mdi-plus"
+            :disabled="uploading"
             @click="uploadDz?.open()"
           >
             {{ t("common.add") }}
@@ -305,10 +485,32 @@ async function upload() {
   display: flex;
   align-items: flex-end;
   gap: 10px;
+  flex-wrap: wrap;
 }
 .r-v2-upload__platform {
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: min(100%, 240px);
+}
+.r-v2-upload__guidance,
+.r-v2-upload__error {
+  margin: 0;
+  font-size: 13px;
+}
+.r-v2-upload__guidance {
+  color: var(--r-color-fg-muted);
+}
+.r-v2-upload__error {
+  color: var(--r-color-danger);
+}
+.r-v2-upload__folder-options {
+  display: grid;
+  gap: 6px;
+  max-width: 560px;
+}
+.r-v2-upload__folder-options p {
+  margin: 0;
+  color: var(--r-color-fg-muted);
+  font-size: 13px;
 }
 
 /* ── Filled state ────────────────────────────────────────────── */

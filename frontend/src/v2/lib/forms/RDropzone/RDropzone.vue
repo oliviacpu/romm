@@ -15,6 +15,7 @@
 // from props so consumers pass translated strings.
 import { useDropZone } from "@vueuse/core";
 import { ref } from "vue";
+import { droppedFiles } from "@/utils/uploadFiles";
 import RIcon from "../../primitives/RIcon/RIcon.vue";
 
 // Attrs land on the root (see `v-bind="$attrs"` below) rather than on the
@@ -47,6 +48,7 @@ interface Props {
   releaseLabel?: string | undefined;
   /** Accessible label for the underlying (visually hidden) file input. */
   inputLabel?: string | undefined;
+  directoryInputLabel?: string | undefined;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -62,7 +64,7 @@ const props = withDefaults(defineProps<Props>(), {
   inputLabel: undefined,
 });
 
-const emit = defineEmits<{ files: [files: File[]] }>();
+const emit = defineEmits<{ files: [files: File[]]; error: [error: Error] }>();
 
 defineSlots<{
   /** Overlay-mode content (the filled list / grid / card). */
@@ -73,11 +75,21 @@ defineSlots<{
 
 const rootRef = ref<HTMLElement | null>(null);
 const inputRef = ref<HTMLInputElement | null>(null);
+const directoryRef = ref<HTMLInputElement | null>(null);
 
 const { isOverDropZone } = useDropZone(rootRef, {
-  onDrop(files) {
-    if (props.disabled || !files || files.length === 0) return;
-    emit("files", props.multiple ? files : files.slice(0, 1));
+  async onDrop(files, event) {
+    if (props.disabled) return;
+    try {
+      const picked =
+        props.directoryInputLabel && event?.dataTransfer?.items
+          ? await droppedFiles(event.dataTransfer.items)
+          : files;
+      if (props.disabled || !picked?.length) return;
+      emit("files", props.multiple ? picked : picked.slice(0, 1));
+    } catch (error) {
+      emit("error", error instanceof Error ? error : new Error(String(error)));
+    }
   },
   ...(props.dataTypes ? { dataTypes: props.dataTypes } : {}),
   multiple: props.multiple,
@@ -89,6 +101,10 @@ function open() {
   inputRef.value?.click();
 }
 
+function openDirectory() {
+  if (!props.disabled) directoryRef.value?.click();
+}
+
 function onPick(event: Event) {
   const input = event.target as HTMLInputElement;
   const files = input.files ? Array.from(input.files) : [];
@@ -97,7 +113,7 @@ function onPick(event: Event) {
   emit("files", props.multiple ? files : files.slice(0, 1));
 }
 
-defineExpose({ open, isOver: isOverDropZone });
+defineExpose({ open, openDirectory, isOver: isOverDropZone });
 </script>
 
 <template>
@@ -119,6 +135,17 @@ defineExpose({ open, isOver: isOverDropZone });
       :aria-label="inputLabel"
       :accept="accept"
       :multiple="multiple"
+      :disabled="disabled"
+      @change="onPick"
+    />
+    <input
+      v-if="directoryInputLabel"
+      ref="directoryRef"
+      type="file"
+      class="r-dropzone__input"
+      :aria-label="directoryInputLabel"
+      webkitdirectory
+      multiple
       :disabled="disabled"
       @change="onPick"
     />

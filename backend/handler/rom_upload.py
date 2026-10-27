@@ -96,6 +96,27 @@ def parse_upload_folder(folder: str) -> str:
     return "/".join(segments)
 
 
+def resolve_platform_upload_destination(
+    fs_slug: str, folder: str, filename: str
+) -> UploadDestination:
+    """Keep a directory upload inside its platform, without following game symlinks."""
+    filename = sanitize_upload_filename(filename)
+    folder = parse_upload_folder(folder)
+    root = fs_rom_handler.get_roms_upload_path(fs_slug)
+    rel_dir = f"{root}/{folder}" if folder else root
+    location = fs_rom_handler.validate_path(f"{rel_dir}/{filename}")
+    if folder:
+        platform = fs_rom_handler.validate_path(root)
+        current = platform
+        for part in (*Path(folder).parts, filename):
+            current /= part
+            if current.is_symlink():
+                raise UploadRejectedException("Upload path cannot contain a symlink")
+        if not location.resolve().is_relative_to(platform.resolve()):
+            raise UploadRejectedException("Upload path must stay inside the platform")
+    return UploadDestination(rom=None, rel_dir=rel_dir, location=location)
+
+
 def assert_allowed_in_folder(folder: str, filename: str) -> None:
     """Refuse a file the category the folder maps to cannot hold."""
     category = category_for_path_parts(folder.lower().split("/"))

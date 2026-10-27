@@ -12,9 +12,13 @@ export type UploadTargetPayload = {
      */
     rom_id?: (number | null);
     /**
-     * Subfolder inside the ROM's folder, relative and forward-slashed. Empty for the root.
+     * Relative subfolder inside the platform, or inside the ROM when rom_id is set. Empty for the root.
      */
     folder?: string;
+    /**
+     * Game folder upload to stage this file in until all files finish.
+     */
+    batch_id?: (string | null);
     /**
      * The file name. Takes precedence over the header, which cannot carry characters outside Latin-1.
      */

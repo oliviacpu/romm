@@ -63,3 +63,23 @@ async def test_unmatched_rom_skips_the_sgdb_lookup(sgdb_lookup):
 
     assert not result.is_identified
     sgdb_lookup.assert_not_awaited()
+
+
+async def test_quick_scan_retries_missing_libretro_cover(sgdb_lookup):
+    platform = add_n64_platform()
+    rom = add_rom(platform, FS_NAME, "Mario Kart 64")
+    lookup = AsyncMock(
+        return_value=LibretroRom(
+            libretro_id="cover-id", url_cover="https://cdn/mario-kart.png"
+        )
+    )
+    with patch("handler.scan_handler.meta_libretro_handler.get_rom", new=lookup):
+        result = await run_scan(
+            platform,
+            rom,
+            scan_type=ScanType.QUICK,
+            metadata_sources=[MetadataSource.LIBRETRO],
+        )
+    lookup.assert_awaited_once()
+    assert result.libretro_id == "cover-id"
+    assert result.url_cover == "https://cdn/mario-kart.png"

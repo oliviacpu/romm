@@ -897,6 +897,12 @@ async def scan_rom(
                 or scan_type == ScanType.COMPLETE
                 or (scan_type == ScanType.UPDATE and rom.libretro_id)
                 or (scan_type == ScanType.UNMATCHED and not rom.libretro_id)
+                or (
+                    scan_type == ScanType.QUICK
+                    and not rom.libretro_id
+                    and not rom.path_cover_l
+                    and not rom.url_cover
+                )
             )
         ):
             attempted_sources.add(MetadataSource.LIBRETRO)

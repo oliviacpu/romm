@@ -10,6 +10,7 @@ class UploadingFile {
   finished: boolean;
   failed: boolean;
   failureReason: string;
+  phase: "transferring" | "finalizing" | "done" | "failed";
 
   constructor(filename: string) {
     this.filename = filename;
@@ -20,6 +21,7 @@ class UploadingFile {
     this.finished = false;
     this.failed = false;
     this.failureReason = "";
+    this.phase = "transferring";
   }
 }
 
@@ -56,13 +58,28 @@ export default defineStore("upload", {
       file.total = totalBytes;
       file.loaded = (overallPercent / 100) * totalBytes;
       file.rate = rate ?? file.rate;
-      file.finished = overallPercent >= 100;
+    },
+    finalizing(filename: string) {
+      const file = this.files.find((f) => f.filename === filename);
+      if (!file) return;
+      file.phase = "finalizing";
+      file.progress = 100;
+      file.loaded = file.total;
+      file.finished = false;
+    },
+    complete(filename: string) {
+      const file = this.files.find((f) => f.filename === filename);
+      if (file) {
+        file.finished = true;
+        file.phase = "done";
+      }
     },
     fail(filename: string, reason: string) {
       const file = this.files.find((f) => f.filename === filename);
       if (!file) return;
 
       file.failed = true;
+      file.phase = "failed";
       file.failureReason = reason;
     },
     clearFinished() {

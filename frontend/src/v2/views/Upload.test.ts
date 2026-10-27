@@ -8,6 +8,7 @@ const {
   getSupportedPlatforms,
   uploadPlatform,
   uploadRoms,
+  getUploadPolicies,
   emit,
   warning,
   scanning,
@@ -15,6 +16,7 @@ const {
   getSupportedPlatforms: vi.fn(),
   uploadPlatform: vi.fn(),
   uploadRoms: vi.fn(),
+  getUploadPolicies: vi.fn().mockResolvedValue({}),
   emit: vi.fn(),
   warning: vi.fn(),
   scanning: {
@@ -41,7 +43,7 @@ vi.mock("@/services/api/platform", () => ({
 }));
 
 vi.mock("@/services/api/rom", () => ({
-  default: { uploadRoms },
+  default: { uploadRoms, getUploadPolicies },
 }));
 
 vi.mock("@/services/socket", () => ({
@@ -103,7 +105,7 @@ async function uploadOneFile() {
   await wrapper.get(".platform-select").trigger("click");
   await wrapper.get(".dropzone").trigger("click");
   await nextTick();
-  await wrapper.get(".upload").trigger("click");
+  await wrapper.get('[data-testid="upload-submit"]').trigger("click");
   await flushPromises();
   return wrapper;
 }

@@ -125,6 +125,7 @@ async def search_rom(
         and not meta_launchbox_handler.is_cloud_enabled()
         and not meta_demozoo_handler.is_enabled()
         and not meta_steam_handler.is_enabled()
+        and not meta_libretro_handler.is_enabled()
     ):
         log.error("Search error: No metadata providers enabled")
         raise HTTPException(
@@ -305,9 +306,14 @@ async def search_rom(
     async def get_libretro_rom(name: str) -> tuple[str, LibretroRom]:
         return name, await meta_libretro_handler.get_rom(name, rom.platform.slug)
 
-    # These two only add cover art to matches the other providers already
-    # produced, so an unreachable one costs a thumbnail rather than the results.
+    # Libretro can provide a cover-only match when no title provider is enabled.
     merged_names = list(merged_dict.keys())
+    if (
+        not merged_names
+        and search_by.lower() == "name"
+        and meta_libretro_handler.is_enabled()
+    ):
+        merged_names = [search_term]
     sgdb_roms, libretro_roms = await asyncio.gather(
         asyncio.gather(
             *[get_sgdb_rom(name) for name in merged_names], return_exceptions=True
@@ -328,7 +334,15 @@ async def search_rom(
     for name, libretro_rom in _without_failures(libretro_roms, "Libretro"):
         if libretro_rom["libretro_id"]:
             merged_dict[name] = {
-                **merged_dict[name],
+                **merged_dict.get(
+                    name,
+                    {
+                        "name": name,
+                        "platform_id": rom.platform_id,
+                        "is_identified": True,
+                        "is_unidentified": False,
+                    },
+                ),
                 "libretro_id": libretro_rom.get("libretro_id", ""),
                 "libretro_url_cover": libretro_rom.get("url_cover", ""),
             }
