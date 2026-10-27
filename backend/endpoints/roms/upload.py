@@ -27,6 +27,12 @@ from handler.auth.dependencies import assert_rom_visible, get_permissions
 from handler.database import db_platform_handler, db_rom_handler
 from handler.filesystem import fs_rom_handler
 from handler.redis_handler import async_cache
+from handler.rom_batch_upload import (
+    cancel_batch,
+    finish_batch,
+    resolve_batch_destination,
+    start_batch,
+)
 from handler.rom_conversion import assert_promotable
 from handler.rom_upload import (
     UploadConflictException,
@@ -36,10 +42,12 @@ from handler.rom_upload import (
     commit_upload,
     parse_upload_folder,
     prepare_upload_destination,
+    resolve_platform_upload_destination,
     resolve_upload_destination,
     sanitize_upload_filename,
     staging_path,
 )
+from handler.upload_policy import single_upload_error, upload_policies
 from logger.logger import log
 from models.audit_event import AuditAction
 from models.rom import Rom, RomFile
@@ -50,7 +58,7 @@ router = APIRouter(
     tags=["upload"],
 )
 
-ROM_ASSEMBLY_CHUNK_SIZE = 8192  # 8KB read buffer during assembly
+ROM_ASSEMBLY_CHUNK_SIZE = 1024 * 1024
 ROM_UPLOAD_MAX_CHUNK_SIZE = 64 * 1024 * 1024  # 64MB hard cap per chunk
 
 
@@ -240,17 +248,36 @@ async def _resolve_destination(
 ) -> UploadDestination:
     """Where a completed upload lands, with its directory created."""
     filename = session["filename"]
-    rom_id = session.get("rom_id")
-    if rom_id is None:
+    batch_id = session.get("batch_id")
+    if batch_id:
         try:
-            roms_path = fs_rom_handler.get_roms_upload_path(session["platform_fs_slug"])
-            location = fs_rom_handler.validate_path(f"{roms_path}/{filename}")
+            destination = resolve_batch_destination(
+                session["platform_fs_slug"],
+                batch_id,
+                session["platform_id"],
+                request.user.id,
+                session.get("folder", ""),
+                filename,
+                session["total_size"],
+            )
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
             ) from exc
-        await fs_rom_handler.make_directory(roms_path)
-        return UploadDestination(rom=None, rel_dir=roms_path, location=location)
+        await fs_rom_handler.make_directory(destination.rel_dir)
+        return destination
+    rom_id = session.get("rom_id")
+    if rom_id is None:
+        try:
+            destination = resolve_platform_upload_destination(
+                session["platform_fs_slug"], session.get("folder", ""), filename
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
+        await fs_rom_handler.make_directory(destination.rel_dir)
+        return destination
 
     rom = _get_upload_rom(request, rom_id, session["platform_id"])
     return await _prepare_rom_destination(
@@ -269,7 +296,11 @@ class UploadTargetPayload(BaseModel):
     )
     folder: str = Field(
         default="",
-        description="Subfolder inside the ROM's folder, relative and forward-slashed. Empty for the root.",
+        description="Relative subfolder inside the platform, or inside the ROM when rom_id is set. Empty for the root.",
+    )
+    batch_id: str | None = Field(
+        default=None,
+        description="Game folder upload to stage this file in until all files finish.",
     )
     filename: str | None = Field(
         default=None,
@@ -279,6 +310,122 @@ class UploadTargetPayload(BaseModel):
         default=False,
         description="Replace a file of the same name in the ROM's folder instead of refusing the upload.",
     )
+
+
+class BatchFilePayload(BaseModel):
+    path: str
+    size: int = Field(ge=1)
+
+
+class BatchStartPayload(BaseModel):
+    name: str
+    files: list[BatchFilePayload] = Field(min_length=1, max_length=256)
+
+
+class PlatformUploadPolicyPayload(BaseModel):
+    label: str
+    launch: list[str]
+    companions: list[str]
+
+
+def _batch_platform(request: Request, platform_id: int) -> str:
+    platform = db_platform_handler.get_platform(platform_id)
+    if not platform or not get_permissions(request).can_see_platform(platform_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Platform not found"
+        )
+    return platform.fs_slug
+
+
+@protected_route(router.get, "/policy", [Scope.ROMS_WRITE])
+async def get_upload_policy(request: Request) -> dict[str, PlatformUploadPolicyPayload]:
+    return {
+        slug: PlatformUploadPolicyPayload(
+            label=policy.label,
+            launch=sorted(policy.launch),
+            companions=sorted(policy.companions),
+        )
+        for slug, policy in upload_policies().items()
+    }
+
+
+@protected_route(
+    router.post, "/batch/start", [Scope.ROMS_WRITE], status_code=status.HTTP_201_CREATED
+)
+async def start_game_upload(
+    request: Request,
+    platform_id: Annotated[int, Header(alias="x-upload-platform", ge=1)],
+    payload: BatchStartPayload,
+) -> dict[str, str]:
+    fs_slug = _batch_platform(request, platform_id)
+    try:
+        batch_id = await asyncio.to_thread(
+            start_batch,
+            fs_slug,
+            platform_id,
+            request.user.id,
+            payload.name,
+            [file.model_dump() for file in payload.files],
+        )
+    except UploadConflictException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+    except UploadRejectedException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    return {"batch_id": batch_id}
+
+
+@protected_route(
+    router.post,
+    "/batch/{batch_id}/complete",
+    [Scope.ROMS_WRITE],
+    status_code=status.HTTP_201_CREATED,
+)
+async def complete_game_upload(
+    request: Request,
+    batch_id: str,
+    platform_id: Annotated[int, Header(alias="x-upload-platform", ge=1)],
+) -> dict[str, str]:
+    fs_slug = _batch_platform(request, platform_id)
+    try:
+        name = await asyncio.to_thread(
+            finish_batch, fs_slug, batch_id, platform_id, request.user.id
+        )
+    except UploadConflictException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+    except UploadRejectedException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    return {"name": name}
+
+
+@protected_route(
+    router.post,
+    "/batch/{batch_id}/cancel",
+    [Scope.ROMS_WRITE],
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def cancel_game_upload(
+    request: Request,
+    batch_id: str,
+    platform_id: Annotated[int, Header(alias="x-upload-platform", ge=1)],
+) -> Response:
+    fs_slug = _batch_platform(request, platform_id)
+    try:
+        await asyncio.to_thread(
+            cancel_batch, fs_slug, batch_id, platform_id, request.user.id
+        )
+    except UploadRejectedException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @protected_route(
@@ -330,17 +477,51 @@ async def start_chunked_upload(
         filename = target.filename
     safe_filename = _sanitized_filename(filename)
     rom_id = target.rom_id if target else None
+    batch_id = target.batch_id if target else None
+    if batch_id is None and (
+        error := single_upload_error(platform_fs_slug, safe_filename)
+    ):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
     overwrite = bool(target and target.overwrite and rom_id is not None)
     rel_folder = ""
 
-    if rom_id is None:
+    if batch_id:
+        if rom_id is not None or overwrite:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Choose a game upload or an existing ROM",
+            )
         try:
-            roms_path = fs_rom_handler.get_roms_upload_path(platform_fs_slug)
+            rel_folder = parse_upload_folder(target.folder if target else "")
+            destination = resolve_batch_destination(
+                platform_fs_slug,
+                batch_id,
+                platform_id,
+                request.user.id,
+                rel_folder,
+                safe_filename,
+                total_size,
+            )
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
             ) from exc
-        if await fs_rom_handler.file_exists(f"{roms_path}/{safe_filename}"):
+        if await fs_rom_handler.file_exists(f"{destination.rel_dir}/{safe_filename}"):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"File {filename} already exists",
+            )
+    elif rom_id is None:
+        try:
+            rel_folder = parse_upload_folder(target.folder if target else "")
+            destination = resolve_platform_upload_destination(
+                platform_fs_slug, rel_folder, safe_filename
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            ) from exc
+        if await fs_rom_handler.file_exists(f"{destination.rel_dir}/{safe_filename}"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"File {filename} already exists",
@@ -376,6 +557,7 @@ async def start_chunked_upload(
         "total_size": total_size,
         "user_id": request.user.id,
         "rom_id": rom_id,
+        "batch_id": batch_id,
         "folder": rel_folder,
         "overwrite": overwrite,
     }

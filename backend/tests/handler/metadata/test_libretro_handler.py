@@ -122,6 +122,30 @@ def test_find_matching_art_no_match(handler: LibretroHandler):
     assert result is None
 
 
+def test_disc_folder_matches_the_correct_disc_and_region(handler: LibretroHandler):
+    listing = [
+        "Skies of Arcadia (Europe) (Disc 1).png",
+        "Skies of Arcadia (USA) (Disc 2).png",
+        "Skies of Arcadia (USA) (Disc 1).png",
+    ]
+    assert handler._find_matching_art("Skies_Of_Arcadia_GD1", listing) == listing[2]
+    assert handler._find_matching_art("Skies_Of_Arcadia_GD2", listing) == listing[1]
+
+
+def test_punctuation_variants_match_without_guessing_another_game(
+    handler: LibretroHandler,
+):
+    listing = [
+        "Evolution - The World of Sacred Device (USA).png",
+        "Fruit Fall (Europe).png",
+    ]
+    assert (
+        handler._find_matching_art("Evolution_The_World_of_Sacred_Device", listing)
+        == listing[0]
+    )
+    assert handler._find_matching_art("FruitY", listing) is None
+
+
 # ---------------------------------------------------------------------------
 # get_rom (scan path)
 # ---------------------------------------------------------------------------

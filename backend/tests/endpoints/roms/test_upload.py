@@ -12,7 +12,7 @@ from tests.factories import make_platform, make_rom
 from tests.redis_stubs import fail_expire, record_pipelines
 
 from endpoints.roms import upload as upload_endpoint
-from handler import rom_upload
+from handler import rom_upload, upload_policy
 from handler.database import db_rom_handler
 from handler.filesystem import fs_rom_handler
 from handler.redis_handler import sync_cache
@@ -82,6 +82,31 @@ def test_start_chunked_upload_success(
     assert response.status_code == status.HTTP_201_CREATED
     upload_id = response.json()["upload_id"]
     assert UUID(upload_id)
+
+
+def test_dreamcast_iso_rejected_before_upload_session(
+    client: TestClient,
+    access_token: str,
+    upload_fs: dict[str, Any],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    policy_file = tmp_path / "upload-policy.json"
+    policy_file.write_text(
+        '{"dreamcast":{"label":"Dreamcast","launch":[".gdi",".chd",".cdi",".cue"],"companions":[".iso",".raw"]}}'
+    )
+    monkeypatch.setattr(upload_policy, "ROM_UPLOAD_POLICY_FILE", str(policy_file))
+    upload_policy.upload_policies.cache_clear()
+    try:
+        dreamcast = make_platform("dc", fs_slug="dreamcast")
+        response = _start_upload(
+            client, access_token, dreamcast.id, filename="JETRADIO.iso"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "cannot launch" in response.json()["detail"]
+        assert not upload_fs["uploads_tmp"].exists()
+    finally:
+        upload_policy.upload_policies.cache_clear()
 
 
 def test_start_chunked_upload_platform_not_found(
@@ -448,6 +473,165 @@ def rom_upload_fs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(upload_endpoint, "ROM_UPLOAD_TMP_BASE", tmp_path / "uploads")
     monkeypatch.setattr(fs_rom_handler, "base_path", lib.resolve())
     return lib
+
+
+def _start_directory_file(
+    client: TestClient, token: str, platform: Platform, folder: str, filename: str
+):
+    return client.post(
+        "/api/roms/upload/start",
+        headers={
+            **_auth_headers(token),
+            "x-upload-platform": str(platform.id),
+            "x-upload-filename": filename,
+            "x-upload-total-size": "3",
+            "x-upload-total-chunks": "1",
+        },
+        json={"folder": folder, "filename": filename},
+    )
+
+
+def test_game_folder_upload_is_hidden_until_complete(
+    client: TestClient, access_token: str, platform: Platform, rom_upload_fs: Path
+):
+    headers = {**_auth_headers(access_token), "x-upload-platform": str(platform.id)}
+    descriptor = b"1\n1 0 4 2048 track01.iso 0\n"
+    start = client.post(
+        "/api/roms/upload/batch/start",
+        headers=headers,
+        json={
+            "name": "Crazy Taxi",
+            "files": [
+                {"path": "disc.gdi", "size": len(descriptor)},
+                {"path": "track01.iso", "size": 3},
+            ],
+        },
+    )
+    assert start.status_code == 201
+    batch_id = start.json()["batch_id"]
+    root = rom_upload_fs / fs_rom_handler.get_roms_upload_path(platform.fs_slug)
+    assert not (root / "Crazy Taxi").exists()
+
+    for filename, content in (
+        ("disc.gdi", descriptor),
+        ("track01.iso", b"one"),
+    ):
+        started = client.post(
+            "/api/roms/upload/start",
+            headers={
+                **headers,
+                "x-upload-filename": filename,
+                "x-upload-total-size": str(len(content)),
+                "x-upload-total-chunks": "1",
+            },
+            json={"filename": filename, "batch_id": batch_id},
+        )
+        assert started.status_code == 201
+        upload_id = started.json()["upload_id"]
+        assert (
+            client.put(
+                f"/api/roms/upload/{upload_id}",
+                headers={**_auth_headers(access_token), "x-chunk-index": "0"},
+                content=content,
+            ).status_code
+            == 200
+        )
+        assert (
+            client.post(
+                f"/api/roms/upload/{upload_id}/complete",
+                headers=_auth_headers(access_token),
+            ).status_code
+            == 201
+        )
+        assert not (root / "Crazy Taxi").exists()
+
+    completed = client.post(
+        f"/api/roms/upload/batch/{batch_id}/complete", headers=headers
+    )
+    assert completed.status_code == 201
+    assert (root / "Crazy Taxi/disc.gdi").is_file()
+    assert (root / "Crazy Taxi/track01.iso").read_bytes() == b"one"
+
+
+def test_directory_upload_preserves_nested_paths_and_track_names(
+    client: TestClient, access_token: str, platform: Platform, rom_upload_fs: Path
+):
+    root = fs_rom_handler.get_roms_upload_path(platform.fs_slug)
+    for folder, data in [("Game A/disc", b"one"), ("Game B/disc", b"two")]:
+        start = _start_directory_file(
+            client, access_token, platform, folder, "track01.iso"
+        )
+        assert start.status_code == 201
+        upload_id = start.json()["upload_id"]
+        assert (
+            client.put(
+                f"/api/roms/upload/{upload_id}",
+                headers={**_auth_headers(access_token), "x-chunk-index": "0"},
+                content=data,
+            ).status_code
+            == 200
+        )
+        assert (
+            client.post(
+                f"/api/roms/upload/{upload_id}/complete",
+                headers=_auth_headers(access_token),
+            ).status_code
+            == 201
+        )
+        assert (rom_upload_fs / root / folder / "track01.iso").read_bytes() == data
+    assert not (rom_upload_fs / root / "track01.iso").exists()
+
+
+@pytest.mark.parametrize(
+    "folder",
+    ["../escape", "/absolute", "Game/../../escape", "a//b", "a\\b", "Game\0bad"],
+)
+def test_directory_upload_rejects_unsafe_folders(
+    client: TestClient,
+    access_token: str,
+    platform: Platform,
+    rom_upload_fs: Path,
+    folder: str,
+):
+    assert (
+        _start_directory_file(
+            client, access_token, platform, folder, "track01.iso"
+        ).status_code
+        == 400
+    )
+
+
+def test_directory_upload_rechecks_symlinks_before_assembly(
+    client: TestClient,
+    access_token: str,
+    platform: Platform,
+    rom_upload_fs: Path,
+    tmp_path: Path,
+):
+    start = _start_directory_file(client, access_token, platform, "Game", "track01.iso")
+    assert start.status_code == 201
+    upload_id = start.json()["upload_id"]
+    assert (
+        client.put(
+            f"/api/roms/upload/{upload_id}",
+            headers={**_auth_headers(access_token), "x-chunk-index": "0"},
+            content=b"one",
+        ).status_code
+        == 200
+    )
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    root = rom_upload_fs / fs_rom_handler.get_roms_upload_path(platform.fs_slug)
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "Game").symlink_to(outside, target_is_directory=True)
+    assert (
+        client.post(
+            f"/api/roms/upload/{upload_id}/complete",
+            headers=_auth_headers(access_token),
+        ).status_code
+        == 400
+    )
+    assert not (outside / "track01.iso").exists()
 
 
 def _write(lib: Path, rel: str, data: bytes) -> os.stat_result:

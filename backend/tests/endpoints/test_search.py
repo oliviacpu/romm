@@ -13,6 +13,7 @@ from fastapi import HTTPException, status
 from exceptions.endpoint_exceptions import SGDBInvalidAPIKeyException
 from handler.metadata.base_handler import CoverResource, CoverResult
 from handler.metadata.igdb_handler import IGDBRom
+from handler.metadata.libretro_handler import LibretroRom
 from handler.metadata.moby_handler import MobyGamesRom
 from handler.metadata.ss_handler import SSRom
 from handler.metadata.steam_handler import SteamRom
@@ -87,6 +88,51 @@ def test_steam_matches_carry_their_id_and_cover(client, access_token, rom):
     )
     assert steam_match["steam_id"] == 4
     assert steam_match["steam_url_cover"] == "https://cdn/4.jpg"
+
+
+def test_libretro_only_search_returns_an_artwork_match(client, access_token, rom):
+    handlers = (
+        "meta_igdb_handler",
+        "meta_ss_handler",
+        "meta_moby_handler",
+        "meta_flashpoint_handler",
+        "meta_launchbox_handler",
+        "meta_demozoo_handler",
+        "meta_steam_handler",
+    )
+    with ExitStack() as stack:
+        for handler in handlers:
+            enabled = (
+                "is_cloud_enabled"
+                if handler == "meta_launchbox_handler"
+                else "is_enabled"
+            )
+            stack.enter_context(
+                patch(f"endpoints.search.{handler}.{enabled}", return_value=False)
+            )
+            stack.enter_context(
+                patch(
+                    f"endpoints.search.{handler}.get_matched_roms_by_name",
+                    new=AsyncMock(return_value=[]),
+                )
+            )
+        stack.enter_context(
+            patch(
+                "endpoints.search.meta_libretro_handler.get_rom",
+                new=AsyncMock(
+                    return_value=LibretroRom(
+                        libretro_id="cover-id", url_cover="https://cdn/skies.png"
+                    )
+                ),
+            )
+        )
+        response = client.get(
+            f"/api/search/roms?rom_id={rom.id}&search_term=Skies+of+Arcadia&search_by=name",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()[0]["name"] == "Skies of Arcadia"
+    assert response.json()[0]["libretro_url_cover"] == "https://cdn/skies.png"
 
 
 def test_a_failing_provider_costs_only_its_own_match_when_searching_by_id(

@@ -7,6 +7,7 @@ import type {
   DetailedRomSchema,
   ManualMetadata,
   PhysicalRomCreateForm,
+  PlatformUploadPolicyPayload,
   RecommendedRomSchema,
   RomUserData,
   RomUserSchema,
@@ -25,7 +26,9 @@ import socket from "@/services/socket";
 import storeUpload from "@/stores/upload";
 import { getDownloadPath } from "@/utils/downloadPath";
 import { buildFormInput, type FormInputField } from "@/utils/formData";
+import { settleWithLimit } from "@/utils/settleWithLimit";
 import { toError } from "@/utils/toError";
+import { uploadPath } from "@/utils/uploadFiles";
 
 export const romApi = api;
 type DetailedRom = DetailedRomSchema;
@@ -40,32 +43,53 @@ const browser = Bowser.getParser(window.navigator.userAgent);
 const engineName = browser.getEngineName();
 const trackChunkUploadProgress = engineName !== "WebKit";
 
+export type PlatformUploadPolicy = PlatformUploadPolicyPayload;
+
+async function getUploadPolicies(): Promise<
+  Record<string, PlatformUploadPolicy>
+> {
+  const { data } = await api.get<Record<string, PlatformUploadPolicy>>(
+    "/roms/upload/policy",
+  );
+  return data;
+}
+
 async function uploadRomChunked({
   platformId,
   file,
+  filePath,
   romId,
   folder,
   overwrite = false,
+  batchId,
 }: {
   platformId: number;
   file: File;
+  filePath: string;
   /** Upload into this ROM's folder instead of the platform folder. */
   romId?: number | undefined;
   /** Subfolder inside the ROM folder; empty or omitted for the root. */
   folder?: string | undefined;
   /** Replace a file of the same name in the ROM folder. */
   overwrite?: boolean | undefined;
+  batchId?: string | undefined;
 }): Promise<void> {
   const uploadStore = storeUpload();
   const totalChunks = Math.ceil(file.size / UPLOAD_CHUNK_SIZE);
+  const relativeFolder = filePath.slice(
+    0,
+    Math.max(0, filePath.lastIndexOf("/")),
+  );
+  const targetFolder = [folder, relativeFolder].filter(Boolean).join("/");
 
   // The header cannot carry characters outside Latin-1, so it gets the
   // percent-encoded name and the body the real one.
   const target: UploadTargetPayload = {
     filename: file.name,
+    ...(targetFolder && { folder: targetFolder }),
+    ...(batchId && { batch_id: batchId }),
     ...(romId !== undefined && {
       rom_id: romId,
-      ...(folder && { folder }),
       ...(overwrite && { overwrite }),
     }),
   };
@@ -80,7 +104,7 @@ async function uploadRomChunked({
   const { upload_id } = startData;
 
   // An empty file sends no chunks, so no chunk ever reports it done.
-  if (totalChunks === 0) uploadStore.updateChunkProgress(file.name, 100, 0);
+  if (totalChunks === 0) uploadStore.updateChunkProgress(filePath, 100, 0);
 
   for (let i = 0; i < totalChunks; i++) {
     const start = i * UPLOAD_CHUNK_SIZE;
@@ -103,7 +127,7 @@ async function uploadRomChunked({
               const chunkFraction = progressEvent.progress ?? 0;
               const overall = ((i + chunkFraction) / totalChunks) * 100;
               uploadStore.updateChunkProgress(
-                file.name,
+                filePath,
                 overall,
                 file.size,
                 progressEvent.rate,
@@ -113,7 +137,7 @@ async function uploadRomChunked({
         });
         if (!trackChunkUploadProgress) {
           uploadStore.updateChunkProgress(
-            file.name,
+            filePath,
             ((i + 1) / totalChunks) * 100,
             file.size,
           );
@@ -134,9 +158,11 @@ async function uploadRomChunked({
     }
   }
 
+  uploadStore.finalizing(filePath);
   await api.post(`/roms/upload/${upload_id}/complete`, null, {
     timeout: 600000, // 10 minutes
   });
+  uploadStore.complete(filePath);
 }
 
 async function uploadRoms({
@@ -145,31 +171,85 @@ async function uploadRoms({
   romId,
   folder,
   overwrite,
+  batchId,
+  pathForFile = uploadPath,
 }: {
   platformId: number;
   filesToUpload: File[];
   romId?: number;
   folder?: string;
   overwrite?: boolean;
+  batchId?: string;
+  pathForFile?: (file: File) => string;
 }) {
   if (!socket.connected) socket.connect();
   const uploadStore = storeUpload();
 
-  const promises = filesToUpload.map((file) => {
-    uploadStore.start(file.name);
+  return settleWithLimit(filesToUpload, 2, (file) => {
+    const filePath = pathForFile(file);
+    uploadStore.start(filePath);
 
-    return uploadRomChunked({ platformId, file, romId, folder, overwrite })
+    return uploadRomChunked({
+      platformId,
+      file,
+      filePath,
+      romId,
+      folder,
+      overwrite,
+      batchId,
+    })
       .then(() => null as null)
       .catch((error) => {
         uploadStore.fail(
-          file.name,
+          filePath,
           error.response?.data?.detail ?? error.message,
         );
         return Promise.reject(toError(error));
       });
   });
+}
 
-  return Promise.allSettled(promises);
+async function uploadGameFolder({
+  platformId,
+  name,
+  paths,
+}: {
+  platformId: number;
+  name: string;
+  paths: Map<File, string>;
+}): Promise<void> {
+  const files = [...paths.keys()];
+  const headers = { "X-Upload-Platform": platformId.toString() };
+  const { data } = await api.post<{ batch_id: string }>(
+    "/roms/upload/batch/start",
+    {
+      name,
+      files: files.map((file) => ({ path: paths.get(file), size: file.size })),
+    },
+    { headers },
+  );
+  try {
+    const results = await uploadRoms({
+      platformId,
+      filesToUpload: files,
+      batchId: data.batch_id,
+      pathForFile: (file) => paths.get(file) ?? file.name,
+    });
+    const failed = results.find((result) => result.status === "rejected");
+    if (failed?.status === "rejected") throw failed.reason;
+    const uploadStore = storeUpload();
+    for (const path of paths.values()) uploadStore.finalizing(path);
+    await api.post(`/roms/upload/batch/${data.batch_id}/complete`, null, {
+      headers,
+    });
+    for (const path of paths.values()) uploadStore.complete(path);
+  } catch (error) {
+    await api
+      .post(`/roms/upload/batch/${data.batch_id}/cancel`, null, { headers })
+      .catch(() => {});
+    storeUpload().reset();
+    throw error;
+  }
 }
 
 export interface GetRomsParams {
@@ -1091,6 +1171,8 @@ async function getRomFilters() {
 
 export default {
   uploadRoms,
+  getUploadPolicies,
+  uploadGameFolder,
   getRoms,
   getRecentRoms,
   getRecentPlayedRoms,

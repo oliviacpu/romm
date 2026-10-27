@@ -121,6 +121,52 @@ describe("romApi.uploadRoms", () => {
     expect(startCall().headers["X-Upload-Filename"]).toBe("game.zip");
   });
 
+  it("keeps identical track names in separate game folders", async () => {
+    const first = new File(["one"], "track01.iso");
+    const second = new File(["two"], "track01.iso");
+    Object.defineProperty(first, "webkitRelativePath", {
+      value: "Game A/track01.iso",
+    });
+    Object.defineProperty(second, "webkitRelativePath", {
+      value: "Game B/tracks/track01.iso",
+    });
+
+    await romApi.uploadRoms({ platformId: 3, filesToUpload: [first, second] });
+
+    const starts = post.mock.calls.filter(
+      ([url]) => url === "/roms/upload/start",
+    );
+    expect(starts.map(([, body]) => body)).toEqual([
+      { filename: "track01.iso", folder: "Game A" },
+      { filename: "track01.iso", folder: "Game B/tracks" },
+    ]);
+    expect(storeUpload().files.map((file) => file.filename)).toEqual([
+      "Game A/track01.iso",
+      "Game B/tracks/track01.iso",
+    ]);
+  });
+
+  it("waits for server assembly before marking an upload finished", async () => {
+    let assembled: (() => void) | undefined;
+    post.mockImplementation((url: string) =>
+      url.endsWith("/complete")
+        ? new Promise((resolve) => {
+            assembled = () => resolve({ data: {} });
+          })
+        : Promise.resolve({ data: { upload_id: "u-1" } }),
+    );
+    const result = romApi.uploadRoms({
+      platformId: 3,
+      filesToUpload: [new File(["abc"], "disc.chd")],
+    });
+    await vi.waitFor(() => expect(assembled).toBeDefined());
+    storeUpload().updateChunkProgress("disc.chd", 100, 3);
+    expect(storeUpload().files[0]?.finished).toBe(false);
+    assembled?.();
+    await result;
+    expect(storeUpload().files[0]?.finished).toBe(true);
+  });
+
   it("keeps a name outside Latin-1 out of the header", async () => {
     const name = "Relax \uff5c 432Hz.mp3";
     await romApi.uploadRoms({

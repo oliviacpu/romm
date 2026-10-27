@@ -2,7 +2,8 @@ import asyncio
 import hashlib
 import os
 import re
-from typing import Final, NotRequired, TypedDict
+import unicodedata
+from typing import NotRequired, TypedDict
 
 from adapters.services.libretro_thumbnails import LibretroThumbnailsService
 from adapters.services.libretro_thumbnails_types import LibretroArtType
@@ -14,6 +15,13 @@ from utils.platform_slugs import UniversalPlatformSlug as UPS
 from .base_handler import MetadataHandler
 
 _PAREN_TAG_PATTERN = re.compile(r"\([^)]*\)")
+_DISC_SUFFIX_PATTERN = re.compile(
+    r"(?:[\s_.(-]+)(?:disc|disk|cd|gd)[\s_.-]*[1-8]\)?\s*$", re.I
+)
+_DISC_NUMBER_PATTERN = re.compile(
+    r"(?:^|[^a-z0-9])(?:disc|disk|cd|gd)[\s_.-]*([1-8])(?:[^a-z0-9]|$)", re.I
+)
+_REGION_PATTERN = re.compile(r"\((USA|Europe|Japan|World)\)", re.I)
 
 # Only fetched when the user has the corresponding MetadataMediaType in SCAN_MEDIA
 _GATED_ART_TYPES: list[tuple[LibretroArtType, MetadataMediaType]] = [
@@ -50,6 +58,38 @@ def _strip_paren_tags(s: str) -> str:
     return _PAREN_TAG_PATTERN.sub("", s).strip()
 
 
+def _canonical_title(filename: str) -> str:
+    stem = _DISC_SUFFIX_PATTERN.sub("", _remove_file_extension(filename))
+    stem = _strip_paren_tags(stem)
+    stem = unicodedata.normalize("NFKD", stem).casefold()
+    stem = "".join(char for char in stem if not unicodedata.combining(char))
+    return re.sub(r"[^a-z0-9]+", " ", stem).strip()
+
+
+def _art_rank(
+    filename: str, requested_disc: str | None, requested_region: str | None
+) -> tuple[int, int, str]:
+    disc_match = _DISC_NUMBER_PATTERN.search(filename)
+    disc = disc_match[1] if disc_match else None
+    region_match = _REGION_PATTERN.search(filename)
+    region = region_match[1].casefold() if region_match else None
+    if requested_disc:
+        disc_rank = 0 if disc == requested_disc else 1 if disc is None else 2
+    else:
+        disc_rank = 0 if disc is None else 1
+    if requested_region:
+        region_rank = 0 if region == requested_region else 1 if region is None else 2
+    else:
+        region_rank = {"usa": 0, "world": 1, None: 2, "europe": 3, "japan": 4}.get(
+            region, 5
+        )
+    return (
+        region_rank if requested_region else disc_rank,
+        disc_rank if requested_region else region_rank,
+        filename.casefold(),
+    )
+
+
 def libretro_id_for(filename: str) -> str:
     """Deterministic ID for a libretro art filename.
 
@@ -69,7 +109,6 @@ class LibretroHandler(MetadataHandler):
 
     def __init__(self) -> None:
         self.service = LibretroThumbnailsService()
-        self.min_similarity_score: Final = 0.8
 
     @classmethod
     def is_enabled(cls) -> bool:
@@ -99,27 +138,37 @@ class LibretroHandler(MetadataHandler):
         return None
 
     def _find_fuzzy_match(self, target: str, listing: list[str]) -> str | None:
-        """Fuzzy fallback, strips parenthetical tags from both sides and uses
-        JaroWinkler via MetadataHandler.find_best_match."""
+        """Conservative fallback for minor title differences, never one-word guesses."""
         if not listing:
             return None
-        query = _strip_paren_tags(target)
-        # Build candidate list of tag-stripped names that map back to original filenames
-        stripped_to_original: dict[str, str] = {}
+        query = _canonical_title(target)
+        if len(query.split()) < 2:
+            return None
+        canonical_to_original: dict[str, list[str]] = {}
         for filename in listing:
-            stripped = _strip_paren_tags(_remove_file_extension(filename))
-            # Keep the first occurrence, libretro typically has one canonical
-            # entry per region; ties are acceptable since we fall back here.
-            stripped_to_original.setdefault(stripped, filename)
+            canonical_to_original.setdefault(_canonical_title(filename), []).append(
+                filename
+            )
 
         match, _score = self.find_best_match(
             query,
-            list(stripped_to_original.keys()),
-            min_similarity_score=self.min_similarity_score,
+            list(canonical_to_original.keys()),
+            min_similarity_score=0.93,
         )
         if not match:
             return None
-        return stripped_to_original[match]
+        query_tokens = set(query.split())
+        match_tokens = set(match.split())
+        if len(query_tokens & match_tokens) / len(query_tokens | match_tokens) < 0.8:
+            return None
+        return self._best_art(target, canonical_to_original[match])
+
+    def _best_art(self, target: str, matches: list[str]) -> str:
+        disc_match = _DISC_NUMBER_PATTERN.search(target)
+        region_match = _REGION_PATTERN.search(target)
+        disc = disc_match[1] if disc_match else None
+        region = region_match[1].casefold() if region_match else None
+        return min(matches, key=lambda name: _art_rank(name, disc, region))
 
     def _find_matching_art(self, fs_name: str, listing: list[str]) -> str | None:
         # Libretro's filename convention replaces '&' with '_'.
@@ -129,6 +178,11 @@ class LibretroHandler(MetadataHandler):
         exact = self._find_exact_match(target, listing)
         if exact:
             return exact
+
+        canonical = _canonical_title(target)
+        matches = [name for name in listing if _canonical_title(name) == canonical]
+        if matches:
+            return self._best_art(target, matches)
 
         return self._find_fuzzy_match(target, listing)
 

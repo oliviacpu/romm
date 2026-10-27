@@ -140,7 +140,10 @@ function clearFinished() {
               />
             </div>
             <div class="r-v2-upload__item-meta">
-              <span>{{ formatBytes(file.rate) }}/s</span>
+              <span v-if="file.phase === 'finalizing'">{{
+                t("common.upload-finalizing")
+              }}</span>
+              <span v-else>{{ formatBytes(file.rate) }}/s</span>
               <span>
                 {{ formatBytes(file.loaded) }} / {{ formatBytes(file.total) }}
               </span>

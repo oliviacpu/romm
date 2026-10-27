@@ -60,6 +60,7 @@ ROM_UPLOAD_TMP_BASE: Final[Path] = (
     Path(ROMM_TMP_PATH) if ROMM_TMP_PATH else Path(RESOURCES_BASE_PATH)
 ) / "tmp/uploads"
 ROM_UPLOAD_TTL: Final[int] = 86400  # 24 hours
+ROM_UPLOAD_POLICY_FILE: Final[str | None] = _get_env("ROMM_UPLOAD_POLICY_PATH")
 # Extension of the half-written file an upload assembles into. Excluded from
 # scans by DEFAULT_EXCLUDED_EXTENSIONS, so the two must agree.
 ROM_UPLOAD_ASSEMBLING_EXT: Final[str] = "assembling"
