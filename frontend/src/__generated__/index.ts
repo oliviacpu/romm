@@ -120,6 +120,7 @@ export type { Facet } from './models/Facet';
 export type { FacetValueSchema } from './models/FacetValueSchema';
 export type { FilesystemDict } from './models/FilesystemDict';
 export type { FirmwareSchema } from './models/FirmwareSchema';
+export type { FirmwareVerificationMatchSchema } from './models/FirmwareVerificationMatchSchema';
 export type { ForceReleaseResponse } from './models/ForceReleaseResponse';
 export type { FrontendDict } from './models/FrontendDict';
 export type { GenericTaskMeta } from './models/GenericTaskMeta';

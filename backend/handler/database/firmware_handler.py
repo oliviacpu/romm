@@ -2,10 +2,11 @@ from collections.abc import Collection, Sequence
 from typing import Any
 
 from sqlalchemy import Select, and_, delete, select, update
-from sqlalchemy.orm import Session, raiseload
+from sqlalchemy.orm import Session, selectinload
 
 from decorators.database import INJECTED_SESSION, begin_session
 from models.firmware import Firmware
+from models.platform import Platform
 
 from .base_handler import DBBaseHandler
 
@@ -64,9 +65,11 @@ class DBFirmwareHandler(DBBaseHandler):
             missing=missing,
             hidden_platform_ids=hidden_platform_ids,
         )
-        # `Firmware.platform` is lazy="joined", which drags in Platform's
-        # rom_count and fs_size_bytes subqueries. No caller here reads it.
-        return session.scalars(query.options(raiseload(Firmware.platform))).all()
+        return session.scalars(
+            query.options(
+                selectinload(Firmware.platform).load_only(Platform.id, Platform.slug)
+            )
+        ).all()
 
     @begin_session
     def list_firmware_ids(
