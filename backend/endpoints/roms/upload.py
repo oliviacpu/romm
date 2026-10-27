@@ -478,8 +478,10 @@ async def start_chunked_upload(
     safe_filename = _sanitized_filename(filename)
     rom_id = target.rom_id if target else None
     batch_id = target.batch_id if target else None
-    if batch_id is None and (
-        error := single_upload_error(platform_fs_slug, safe_filename)
+    if (
+        batch_id is None
+        and rom_id is None
+        and (error := single_upload_error(platform_fs_slug, safe_filename))
     ):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error)
     overwrite = bool(target and target.overwrite and rom_id is not None)

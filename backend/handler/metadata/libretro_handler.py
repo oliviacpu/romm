@@ -3,7 +3,7 @@ import hashlib
 import os
 import re
 import unicodedata
-from typing import NotRequired, TypedDict
+from typing import Final, NotRequired, TypedDict
 
 from adapters.services.libretro_thumbnails import LibretroThumbnailsService
 from adapters.services.libretro_thumbnails_types import LibretroArtType

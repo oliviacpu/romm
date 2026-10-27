@@ -109,6 +109,36 @@ def test_dreamcast_iso_rejected_before_upload_session(
         upload_policy.upload_policies.cache_clear()
 
 
+def test_dreamcast_policy_allows_existing_rom_attachment(
+    client: TestClient,
+    access_token: str,
+    admin_user: User,
+    rom_upload_fs: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    policy_file = tmp_path / "upload-policy.json"
+    policy_file.write_text(
+        '{"dreamcast":{"label":"Dreamcast","launch":[".gdi",".chd",".cdi",".cue"],"companions":[".iso",".raw"]}}'
+    )
+    monkeypatch.setattr(upload_policy, "ROM_UPLOAD_POLICY_FILE", str(policy_file))
+    upload_policy.upload_policies.cache_clear()
+    try:
+        dreamcast = make_platform("dc", fs_slug="dreamcast")
+        rom = _folder_rom(dreamcast, admin_user, rom_upload_fs, {"disc.chd": b"game"})
+        response = _start_into_rom(
+            client,
+            access_token,
+            rom,
+            filename="cover.png",
+            folder="screenshots",
+            total_size=3,
+        )
+        assert response.status_code == status.HTTP_201_CREATED, response.json()
+    finally:
+        upload_policy.upload_policies.cache_clear()
+
+
 def test_start_chunked_upload_platform_not_found(
     client: TestClient,
     access_token: str,

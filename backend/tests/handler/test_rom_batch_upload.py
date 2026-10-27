@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -41,7 +42,7 @@ def _start(library: Path, files: dict[str, bytes]) -> tuple[str, Path]:
 
 
 @pytest.fixture
-def dreamcast_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def dreamcast_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     path = tmp_path / "upload-policy.json"
     path.write_text(
         '{"dreamcast":{"label":"Dreamcast","launch":[".gdi",".cue",".chd",".cdi"],"companions":[".iso",".raw",".bin"]}}'
