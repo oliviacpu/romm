@@ -49,6 +49,7 @@ function firmware(overrides: Partial<FirmwareSchema> = {}): FirmwareSchema {
     file_size_bytes: 8192,
     full_path: "fds/disksys.rom",
     is_verified: true,
+    verification_matches: [{ catalog: "RomM", file_names: ["disksys.rom"] }],
     crc_hash: CRC,
     md5_hash: MD5,
     sha1_hash: SHA1,

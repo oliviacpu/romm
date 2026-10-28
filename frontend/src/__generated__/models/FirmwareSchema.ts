@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { FirmwareVerificationMatchSchema } from './FirmwareVerificationMatchSchema';
 export type FirmwareSchema = {
     id: number;
     platform_id: number;
@@ -13,6 +14,7 @@ export type FirmwareSchema = {
     file_size_bytes: number;
     full_path: string;
     is_verified: boolean;
+    verification_matches: Array<FirmwareVerificationMatchSchema>;
     crc_hash: string;
     md5_hash: string;
     sha1_hash: string;

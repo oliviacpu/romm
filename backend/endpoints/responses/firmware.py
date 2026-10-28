@@ -1,8 +1,13 @@
-from typing import TypedDict
+from typing import Self, TypedDict
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, model_validator
 
 from .base import BaseModel, UTCDatetime
+
+
+class FirmwareVerificationMatchSchema(BaseModel):
+    catalog: str
+    file_names: list[str]
 
 
 class FirmwareSchema(BaseModel):
@@ -20,6 +25,7 @@ class FirmwareSchema(BaseModel):
 
     full_path: str
     is_verified: bool
+    verification_matches: list[FirmwareVerificationMatchSchema]
     crc_hash: str
     md5_hash: str
     sha1_hash: str
@@ -28,6 +34,11 @@ class FirmwareSchema(BaseModel):
 
     created_at: UTCDatetime
     updated_at: UTCDatetime
+
+    @model_validator(mode="after")
+    def set_verified_from_catalog_matches(self) -> Self:
+        self.is_verified = bool(self.verification_matches)
+        return self
 
 
 class AddFirmwareResponse(TypedDict):

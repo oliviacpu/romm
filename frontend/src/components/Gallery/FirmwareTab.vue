@@ -129,6 +129,12 @@ function downloadSelected() {
   for (const f of selectedFirmware.value) downloadOne(f);
 }
 
+function verificationTitle(firmware: FirmwareSchema): string {
+  return firmware.verification_matches
+    .map(({ catalog, file_names }) => `${catalog}: ${file_names.join(", ")}`)
+    .join("; ");
+}
+
 const deleteOpen = ref(false);
 const pendingDelete = ref<FirmwareSchema[]>([]);
 
@@ -383,14 +389,18 @@ async function performDelete(
                 color="success"
                 variant="translucent"
                 prepend-icon="mdi-check-circle"
-                :title="
-                  t(
-                    'platform.firmware-verified-tooltip',
-                    'Passed size, SHA1 and MD5 checksum checks',
-                  )
-                "
+                :title="verificationTitle(f)"
               >
                 {{ t("platform.firmware-verified", "Verified") }}
+              </RChip>
+              <RChip
+                v-for="match in f.verification_matches"
+                :key="match.catalog"
+                size="x-small"
+                variant="translucent"
+                :title="match.file_names.join(', ')"
+              >
+                {{ match.catalog }}
               </RChip>
             </div>
           </div>

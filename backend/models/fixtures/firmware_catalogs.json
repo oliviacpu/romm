@@ -1,0 +1,12 @@
+[
+  {
+    "name": "RomM",
+    "file": "known_bios_files.json",
+    "source_url": "https://github.com/rommapp/romm/blob/master/backend/models/fixtures/known_bios_files.json"
+  },
+  {
+    "name": "RetroBIOS",
+    "file": "retrobios_known_bios_files.json",
+    "source_url": "https://github.com/Abdess/retrobios/blob/ed61e42f3fed41835f3679ff056907aa6d24f897/exports/romm/known_bios_files.json"
+  }
+]
