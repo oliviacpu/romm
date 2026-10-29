@@ -15,6 +15,7 @@ import storeAuth from "@/stores/auth";
 import storePermissions from "@/stores/permissions";
 import CreateUserDialog from "@/v2/components/Settings/CreateUserDialog.vue";
 import EditUserDialog from "@/v2/components/Settings/EditUserDialog.vue";
+import EmulationSection from "@/v2/components/Settings/EmulationSection.vue";
 import GroupFormDialog from "@/v2/components/Settings/GroupFormDialog.vue";
 import InviteLinkDialog from "@/v2/components/Settings/InviteLinkDialog.vue";
 import PermissionGroupsSection from "@/v2/components/Settings/PermissionGroupsSection.vue";
@@ -94,7 +95,10 @@ const tabModel = computed<string>({
     <UsersSection v-if="tab === 'users'" />
     <PermissionGroupsSection v-else-if="tab === 'groups'" />
     <TasksSection v-else-if="tab === 'tasks'" />
-    <StreamingSection v-else-if="tab === 'streaming' && isAdmin" />
+    <template v-else-if="tab === 'streaming' && isAdmin">
+      <EmulationSection />
+      <StreamingSection />
+    </template>
 
     <CreateUserDialog />
     <EditUserDialog />

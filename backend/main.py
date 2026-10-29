@@ -36,6 +36,7 @@ from endpoints.collections import router as collections_router
 from endpoints.configs import router as configs_router
 from endpoints.device import router as device_router
 from endpoints.device.auth import router as device_auth_router
+from endpoints.emulation import router as emulation_router
 from endpoints.export import router as export_router
 from endpoints.feeds import router as feeds_router
 from endpoints.firmware import router as firmware_router
@@ -185,6 +186,7 @@ app.add_middleware(
 # Sets context vars in request-response cycle
 app.middleware("http")(set_context_middleware)
 
+app.include_router(emulation_router, prefix="/api")
 app.include_router(heartbeat_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(activity_router, prefix="/api")
