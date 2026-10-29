@@ -7,3 +7,4 @@ export type EmulationProfileRequest = {
     revision: number;
     profile: EmulationProfile;
 };
+

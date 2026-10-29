@@ -13,3 +13,4 @@ export type EmulationStatus = {
     buttons?: Record<string, string>;
     sessions?: Array<EmulationSession>;
 };
+

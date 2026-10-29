@@ -8,3 +8,4 @@ export type EmulationProfile = {
     osd_scale?: (number | null);
     bindings?: Record<string, string>;
 };
+

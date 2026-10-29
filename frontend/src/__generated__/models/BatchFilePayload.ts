@@ -6,3 +6,4 @@ export type BatchFilePayload = {
     path: string;
     size: number;
 };
+

@@ -10,3 +10,4 @@ export type EmulationPlatform = {
     widescreen: boolean;
     mapping: boolean;
 };
+

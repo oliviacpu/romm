@@ -7,3 +7,4 @@ export type PlatformUploadPolicyPayload = {
     launch: Array<string>;
     companions: Array<string>;
 };
+

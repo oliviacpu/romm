@@ -9,3 +9,4 @@ export type EmulationProfileResponse = {
     inherited: EmulationProfile;
     effective: EmulationProfile;
 };
+

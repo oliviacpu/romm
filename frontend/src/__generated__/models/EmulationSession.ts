@@ -11,3 +11,4 @@ export type EmulationSession = {
     ended?: (number | null);
     messages: Array<EmulationMessage>;
 };
+

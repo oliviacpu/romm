@@ -7,3 +7,4 @@ export type EmulationGame = {
     title: string;
     system: string;
 };
+
