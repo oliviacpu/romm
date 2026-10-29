@@ -182,6 +182,43 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(len(sessions[0]["messages"]), 1)
         self.assertIn("Blending", sessions[0]["messages"][0]["text"])
 
+    def test_full_multibyte_history_does_not_block_new_sessions(self):
+        for character in ("界", "\U0001f3ae", "\x01"):
+            with self.subTest(character=repr(character)):
+                sessions = [
+                    {
+                        "id": str(index),
+                        "system": "xbox",
+                        "game": "game.iso",
+                        "started": 1,
+                        "ended": 2,
+                        "messages": [
+                            {
+                                "timestamp": 1,
+                                "source": "xemu",
+                                "level": "warning",
+                                "text": character * 1500,
+                            }
+                            for _ in range(profiles.MAX_MESSAGES)
+                        ],
+                    }
+                    for index in range(profiles.MAX_SESSIONS)
+                ]
+                path = profile_runtime.ROOT / "sessions.json"
+                profiles.atomic_json(path, sessions)
+                self.assertGreater(path.stat().st_size, 4 * 1024 * 1024)
+                session = profile_runtime.start_session("xbox", "next.iso")
+                profile_runtime.append_message(session, "Warning: capture still works")
+                profile_runtime.capture(
+                    SimpleNamespace(stdout=io.StringIO("")), session
+                )
+                stored = json.loads(path.read_text())
+                self.assertEqual(len(stored), profiles.MAX_SESSIONS)
+                self.assertIsNotNone(stored[-1]["ended"])
+                self.assertEqual(
+                    stored[-1]["messages"][0]["text"], "Warning: capture still works"
+                )
+
     def test_core_remaps_leave_menu_and_quit_inputs_unchanged(self):
         script = importlib.util.spec_from_file_location(
             "retroarch_launch", REPO / "integrations/sunshine/retroarch-launch.py"
@@ -205,6 +242,18 @@ class RuntimeTests(unittest.TestCase):
         self.assertIn('input_player1_btn_b = "8"', remap)
         self.assertIn('input_player1_start_btn = "6"', config)
         execute.assert_called_once()
+
+    def test_session_and_general_json_size_limits_remain_enforced(self):
+        root = profile_runtime.ROOT
+        root.mkdir()
+        with (root / "sessions.json").open("wb") as output:
+            output.truncate(profiles.MAX_SESSION_BYTES + 1)
+        with self.assertRaisesRegex(ValueError, "size limit"):
+            profiles.read_sessions(root)
+        with (root / "profiles.json").open("wb") as output:
+            output.truncate(profiles.MAX_JSON_BYTES + 1)
+        with self.assertRaisesRegex(ValueError, "size limit"):
+            profiles.read_json(root / "profiles.json", {})
 
 
 if __name__ == "__main__":

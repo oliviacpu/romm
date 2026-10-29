@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from handler.emulation.profiles import BUTTONS
+from handler.emulation.profiles import BUTTONS, MAX_MESSAGE_LENGTH
 
 
 class EmulationProfile(BaseModel):
@@ -47,7 +47,7 @@ class EmulationMessage(BaseModel):
     timestamp: float
     level: Literal["info", "warning", "error"]
     source: str
-    text: str = Field(max_length=1500)
+    text: str = Field(max_length=MAX_MESSAGE_LENGTH)
 
 
 class EmulationSession(BaseModel):

@@ -323,7 +323,7 @@ def start_session(system, game):
         "messages": [],
     }
     with message_lock:
-        sessions = profiles.read_json(ROOT / "sessions.json", [])
+        sessions = profiles.read_sessions(ROOT)
         sessions.append(session)
         profiles.atomic_json(ROOT / "sessions.json", sessions[-profiles.MAX_SESSIONS :])
         active_session_id = session["id"]
@@ -338,9 +338,9 @@ def append_message(session_id, text, source=None, continuation=False):
         r"(?i)(token|password|secret|authorization)(\s*[:=]\s*).*",
         r"\1\2[redacted]",
         text,
-    )[:1500]
+    )[: profiles.MAX_MESSAGE_LENGTH]
     with message_lock:
-        sessions = profiles.read_json(ROOT / "sessions.json", [])
+        sessions = profiles.read_sessions(ROOT)
         session = next((item for item in sessions if item["id"] == session_id), None)
         if session is None or any(
             message["text"] == text for message in session["messages"]
@@ -349,7 +349,9 @@ def append_message(session_id, text, source=None, continuation=False):
         if continuation:
             if session["messages"]:
                 message = session["messages"][-1]
-                message["text"] = (message["text"] + "\n" + text)[:1500]
+                message["text"] = (message["text"] + "\n" + text)[
+                    : profiles.MAX_MESSAGE_LENGTH
+                ]
         else:
             level = (
                 "error"
@@ -385,7 +387,7 @@ def capture(process, session_id):
     finally:
         process.stdout.close()
         with message_lock:
-            sessions = profiles.read_json(ROOT / "sessions.json", [])
+            sessions = profiles.read_sessions(ROOT)
             for session in sessions:
                 if session["id"] == session_id:
                     session["ended"] = time.time()

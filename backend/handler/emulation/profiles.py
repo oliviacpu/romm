@@ -235,16 +235,24 @@ DEFAULT_PROFILE = {
 }
 MAX_SESSIONS = 30
 MAX_MESSAGES = 40
+MAX_MESSAGE_LENGTH = 1500
+MAX_JSON_BYTES = 4 * 1024 * 1024
+# JSON escaping can use six bytes per character; reserve space for session metadata.
+MAX_SESSION_BYTES = MAX_SESSIONS * MAX_MESSAGES * MAX_MESSAGE_LENGTH * 6 + 1024 * 1024
 ID_PATTERN = re.compile(r"^[a-f0-9]{20}$")
 
 
-def read_json(path: Path, default: Any) -> Any:
+def read_json(path: Path, default: Any, *, max_bytes: int = MAX_JSON_BYTES) -> Any:
     try:
-        if path.stat().st_size > 4 * 1024 * 1024:
+        if path.stat().st_size > max_bytes:
             raise ValueError("Integration file exceeds size limit")
         return json.loads(path.read_text())
     except FileNotFoundError:
         return default
+
+
+def read_sessions(root: Path) -> Any:
+    return read_json(root / "sessions.json", [], max_bytes=MAX_SESSION_BYTES)
 
 
 def atomic_json(path: Path, value: Any) -> None:

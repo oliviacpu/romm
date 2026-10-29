@@ -161,6 +161,31 @@ class EmulationEndpointTests(unittest.TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertNotIn(str(self.root), response.text)
 
+    def test_full_multibyte_history_is_available(self):
+        sessions = [
+            {
+                "id": str(index),
+                "system": "ps2",
+                "game": "game.iso",
+                "started": 1,
+                "ended": 2,
+                "messages": [
+                    {
+                        "timestamp": 1,
+                        "source": "PCSX2",
+                        "level": "warning",
+                        "text": "界" * 1500,
+                    }
+                    for _ in range(40)
+                ],
+            }
+            for index in range(30)
+        ]
+        atomic_json(self.root / "sessions.json", sessions)
+        response = self.client.get("/api/emulation", headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()["sessions"]), 30)
+
     def test_corrupt_catalog_is_unavailable_for_game_profiles(self):
         (self.root / "catalog.json").write_text("not JSON")
         route = f"/api/emulation/profiles/ps2?game_id={self.game_id}"

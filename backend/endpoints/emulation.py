@@ -16,9 +16,11 @@ from endpoints.responses.emulation import (
 from handler.auth.constants import Scope
 from handler.emulation.profiles import (
     BUTTONS,
+    ID_PATTERN,
     PLATFORMS,
     effective_profile,
     read_json,
+    read_sessions,
     save_profile,
 )
 from models.user import Role
@@ -102,7 +104,7 @@ def get_emulation(request: Request) -> EmulationStatus:
             ],
             games=[EmulationGame(**game) for game in catalog["games"]],
             buttons=BUTTONS,
-            sessions=read_json(root / "sessions.json", []),
+            sessions=read_sessions(root),
         )
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         raise HTTPException(
@@ -114,7 +116,7 @@ def get_emulation(request: Request) -> EmulationStatus:
 def get_profile(
     request: Request,
     system: str,
-    game_id: str | None = Query(default=None, pattern="^[a-f0-9]{20}$"),
+    game_id: str | None = Query(default=None, pattern=ID_PATTERN.pattern),
 ) -> EmulationProfileResponse:
     root = require_root(request)
     check_target(root, system, game_id)
@@ -126,7 +128,7 @@ def put_profile(
     request: Request,
     system: str,
     payload: EmulationProfileRequest,
-    game_id: str | None = Query(default=None, pattern="^[a-f0-9]{20}$"),
+    game_id: str | None = Query(default=None, pattern=ID_PATTERN.pattern),
 ) -> EmulationProfileResponse:
     root = require_root(request)
     check_target(root, system, game_id)
