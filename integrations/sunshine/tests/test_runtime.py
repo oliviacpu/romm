@@ -97,14 +97,33 @@ class RuntimeTests(unittest.TestCase):
         path = self.root / "dolphin/Config/GCPadNew.ini"
         profiles.atomic_json(
             profile_runtime.ROOT / "profiles.json",
-            {"games": {"a" * 20: {"bindings": {"up": "down", "down": "up"}}}},
+            {
+                "games": {
+                    "a"
+                    * 20: {
+                        "resolution": "1080p",
+                        "bindings": {
+                            "up": "down",
+                            "down": "up",
+                            "lt": "rt",
+                            "rt": "lt",
+                        },
+                    }
+                }
+            },
         )
         with patch.object(profile_runtime, "game_identity", return_value="a" * 20):
             profile_runtime.prepare("gc", Path("/library/roms/gc/test.iso"))
         self.assertIn("D-Pad/Up = `Pad S`", path.read_text())
+        self.assertIn("Triggers/L-Analog = `Trigger R`", path.read_text())
+        self.assertIn("Triggers/L = `Trigger R` > 0.9", path.read_text())
+        graphics = self.root / "dolphin/Config/GFX.ini"
+        self.assertIn("InternalResolution = 3", graphics.read_text())
         with patch.object(profile_runtime, "game_identity", return_value=None):
             profile_runtime.prepare("gc", Path("/library/roms/gc/other.iso"))
         self.assertIn("D-Pad/Up = `Pad N`", path.read_text())
+        self.assertIn("Triggers/L-Analog = `Trigger L`", path.read_text())
+        self.assertIn("InternalResolution = 1", graphics.read_text())
 
     def test_sdl_remaps_known_baseline_without_changing_axes(self):
         database = self.root / "pcsx2/PCSX2/game_controller_db.txt"

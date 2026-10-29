@@ -252,8 +252,15 @@ def prepare(system, rom):
             CONFIG / "dolphin/Config/GCPadNew.ini",
             {
                 "GCPad1": {
-                    target: "`" + DOLPHIN_BUTTONS[bindings[key]] + "`"
+                    target: "`"
+                    + DOLPHIN_BUTTONS[bindings[key]]
+                    + "`"
+                    + (" > 0.9" if key in ("lt", "rt") else "")
                     for key, target in keys.items()
+                }
+                | {
+                    "Triggers/L-Analog": "`" + DOLPHIN_BUTTONS[bindings["lt"]] + "`",
+                    "Triggers/R-Analog": "`" + DOLPHIN_BUTTONS[bindings["rt"]] + "`",
                 }
             },
         )
@@ -261,7 +268,7 @@ def prepare(system, rom):
             CONFIG / "dolphin/Config/GFX.ini",
             {
                 "Settings": {
-                    "EFBScale": str(scale),
+                    "InternalResolution": str(scale),
                     "AspectRatio": "1" if widescreen else "2",
                     "wideScreenHack": "False",
                 }
