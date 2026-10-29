@@ -1,0 +1,4 @@
+# Healthcheck is inherited from Dockerfile.api; the base requires its root init process.
+# trunk-ignore-all(trivy/DS-0002,trivy/DS-0026,checkov/CKV_DOCKER_2,checkov/CKV_DOCKER_3)
+FROM romm-local-api:5.4.1
+COPY frontend/dist/ /var/www/html/
