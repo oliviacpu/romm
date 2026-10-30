@@ -5,6 +5,9 @@ COPY backend/main.py /backend/main.py
 COPY backend/endpoints/emulation.py /backend/endpoints/emulation.py
 COPY backend/endpoints/responses/emulation.py /backend/endpoints/responses/emulation.py
 COPY backend/endpoints/roms/upload.py /backend/endpoints/roms/upload.py
+COPY backend/endpoints/responses/upload.py /backend/endpoints/responses/upload.py
+COPY backend/handler/rom_identification.py backend/handler/rom_batch_upload.py /backend/handler/
+COPY backend/utils/chd.py backend/utils/archives.py /backend/utils/
 COPY backend/endpoints/search.py /backend/endpoints/search.py
 COPY backend/handler/emulation/ /backend/handler/emulation/
 COPY backend/handler/metadata/libretro_handler.py /backend/handler/metadata/libretro_handler.py

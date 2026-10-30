@@ -16,6 +16,11 @@ from streaming_form_data.targets import FileTarget, NullTarget
 
 from config import ROM_UPLOAD_TMP_BASE, ROM_UPLOAD_TTL
 from decorators.auth import protected_route
+from endpoints.responses.upload import (
+    RomInspectionLimits,
+    RomInspectionResult,
+    RomInspectionSample,
+)
 from exceptions.endpoint_exceptions import RomNotFoundInDatabaseException
 from exceptions.fs_exceptions import (
     RomAlreadyExistsException,
@@ -34,6 +39,14 @@ from handler.rom_batch_upload import (
     start_batch,
 )
 from handler.rom_conversion import assert_promotable
+from handler.rom_identification import (
+    CARTRIDGE_PLATFORMS,
+    HEAD_BYTES,
+    TAIL_BYTES,
+    identify_library_match,
+    identify_sample,
+    validate_platform_file,
+)
 from handler.rom_upload import (
     UploadConflictException,
     UploadDestination,
@@ -337,6 +350,61 @@ def _batch_platform(request: Request, platform_id: int) -> str:
     return platform.fs_slug
 
 
+@protected_route(router.get, "/inspect", [Scope.ROMS_WRITE])
+async def get_inspection_limits(request: Request) -> RomInspectionLimits:
+    return RomInspectionLimits(head_bytes=HEAD_BYTES, tail_bytes=TAIL_BYTES)
+
+
+@protected_route(router.post, "/inspect", [Scope.ROMS_WRITE])
+async def inspect_rom_upload(
+    request: Request, sample: RomInspectionSample
+) -> RomInspectionResult:
+    try:
+        result = await asyncio.to_thread(
+            identify_sample, sample.filename, sample.size, sample.head, sample.tail
+        )
+        result = await asyncio.to_thread(
+            identify_library_match,
+            result,
+            get_permissions(request).rom_visibility,
+            request.user.id,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
+    return RomInspectionResult(
+        format=result.format,
+        platforms=result.platforms,
+        evidence=result.evidence,
+        invalid=result.invalid,
+        members=result.members,
+        incompatible_platforms=(
+            sorted(CARTRIDGE_PLATFORMS)
+            if result.format in {"chd", "disc", "compressed-disc"}
+            else []
+        ),
+    )
+
+
+def _validate_platform_file(
+    request: Request, platform_id: int, path: Path, filename: str
+) -> None:
+    platform = db_platform_handler.get_platform(platform_id)
+    if not platform or not get_permissions(request).can_see_platform(platform_id):
+        raise UploadRejectedException("Platform not found")
+    try:
+        validate_platform_file(
+            path,
+            filename,
+            platform.slug,
+            get_permissions(request).rom_visibility,
+            request.user.id,
+        )
+    except ValueError as exc:
+        raise UploadRejectedException(str(exc)) from exc
+
+
 @protected_route(router.get, "/policy", [Scope.ROMS_WRITE])
 async def get_upload_policy(request: Request) -> dict[str, PlatformUploadPolicyPayload]:
     return {
@@ -392,7 +460,14 @@ async def complete_game_upload(
     fs_slug = _batch_platform(request, platform_id)
     try:
         name = await asyncio.to_thread(
-            finish_batch, fs_slug, batch_id, platform_id, request.user.id
+            finish_batch,
+            fs_slug,
+            batch_id,
+            platform_id,
+            request.user.id,
+            validate_file=lambda path: _validate_platform_file(
+                request, platform_id, path, path.name
+            ),
         )
     except UploadConflictException as exc:
         raise HTTPException(
@@ -738,12 +813,29 @@ async def complete_chunked_upload(
             detail="Upload is already being assembled or has already completed",
         )
 
+    staged: Path | None = None
     try:
         destination = await _resolve_destination(request, session)
         staged = staging_path(destination.location)
         await _assemble_chunks(upload_id, session, staged)
+        if session.get("rom_id") is None and not session.get("batch_id"):
+            try:
+                await asyncio.to_thread(
+                    _validate_platform_file,
+                    request,
+                    session["platform_id"],
+                    staged,
+                    session["filename"],
+                )
+            except UploadRejectedException as exc:
+                staged.unlink(missing_ok=True)
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+                ) from exc
         await _commit(destination, staged, overwrite=session["overwrite"])
     finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
         await _cleanup_upload_state(upload_id)
 
     _record_upload(request, destination.rom, session)
