@@ -274,11 +274,18 @@ def controller_watch():
                         dev = evdev.InputDevice(path)
                     except OSError:
                         continue
+                    try:
+                        is_gamepad = evdev.ecodes.BTN_SOUTH in dev.capabilities().get(
+                            evdev.ecodes.EV_KEY, []
+                        )
+                    except OSError:
+                        dev.close()
+                        continue
                     if (
                         "sunshine" in dev.name.lower()
                         or "x-box" in dev.name.lower()
                         or "xbox" in dev.name.lower()
-                    ):
+                    ) and is_gamepad:
                         devices[path] = dev
                         pressed[path] = set()
                     else:
