@@ -40,7 +40,6 @@ from handler.rom_batch_upload import (
 )
 from handler.rom_conversion import assert_promotable
 from handler.rom_identification import (
-    CARTRIDGE_PLATFORMS,
     HEAD_BYTES,
     TAIL_BYTES,
     identify_library_match,
@@ -379,11 +378,7 @@ async def inspect_rom_upload(
         evidence=result.evidence,
         invalid=result.invalid,
         members=result.members,
-        incompatible_platforms=(
-            sorted(CARTRIDGE_PLATFORMS)
-            if result.format in {"chd", "disc", "compressed-disc"}
-            else []
-        ),
+        incompatible_platforms=result.incompatible_platforms,
     )
 
 

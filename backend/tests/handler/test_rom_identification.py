@@ -118,6 +118,40 @@ class RomIdentificationTests(unittest.TestCase):
         )
         self.assertEqual(result.platforms, [])
         self.assertFalse(result.invalid)
+        self.assertTrue(platform_conflict(result, "genesis"))
+        self.assertFalse(platform_conflict(result, "n64"))
+
+    def test_iso_container_blocks_cartridge_destinations_without_guessing_console(self):
+        for offset in (16 * 2048, 16 * 2352 + 16, 16 * 2352 + 24):
+            data = bytearray(offset + 7)
+            data[offset : offset + 7] = b"\x01CD001\x01"
+            result = self.sample("Seaman.bin", bytes(data))
+            self.assertEqual(result.format, "disc")
+            self.assertEqual(result.platforms, [])
+            self.assertTrue(platform_conflict(result, "n64"))
+            self.assertFalse(platform_conflict(result, "ps2"))
+
+    def test_archived_disc_container_cannot_be_assigned_to_n64(self):
+        data = bytearray(16 * 2048 + 7)
+        data[-7:] = b"\x01CD001\x01"
+        result = self.sample("game.zip", archive({"game.iso": bytes(data)}))
+        self.assertEqual(result.platforms, [])
+        self.assertTrue(platform_conflict(result, "n64"))
+        self.assertFalse(platform_conflict(result, "ps2"))
+
+    def test_mixed_known_headers_remain_conflicting_with_an_unknown_member(self):
+        result = self.sample(
+            "mixed.zip",
+            archive(
+                {
+                    "one.bin": cartridge("n64"),
+                    "two.bin": cartridge("genesis"),
+                    "unknown.bin": b"unknown",
+                }
+            ),
+        )
+        self.assertEqual(result.platforms, ["genesis", "n64"])
+        self.assertTrue(platform_conflict(result, "n64"))
 
     def test_zero_filled_zip_is_rejected_as_an_archive(self):
         result = self.sample("Sonic.zip", bytes(100000))

@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 HEAD_BYTES = 128 * 1024
 TAIL_BYTES = 1024 * 1024
 MAX_ARCHIVE_MEMBERS = 64
+DISC_FORMATS = frozenset({"chd", "disc", "compressed-disc"})
 CARTRIDGE_PLATFORMS = frozenset(
     {
         UPS.N64,
@@ -44,6 +45,21 @@ class Identification:
     invalid: bool = False
     chd_sha1: str | None = None
     members: list[str] = field(default_factory=list)
+    contains_disc: bool = False
+    partial_platforms: list[str] = field(default_factory=list)
+
+    @property
+    def incompatible_platforms(self) -> list[str]:
+        blocked: set[UPS] = set()
+        if self.format in DISC_FORMATS or self.contains_disc:
+            blocked.update(CARTRIDGE_PLATFORMS)
+        if self.partial_platforms:
+            blocked.update(
+                platform
+                for platform in UPS
+                if any(platform != known for known in self.partial_platforms)
+            )
+        return sorted(str(platform) for platform in blocked)
 
 
 def identify_header(data: bytes) -> Identification:
@@ -106,6 +122,14 @@ def identify_header(data: bytes) -> Identification:
             if any(value):
                 digest = value.hex()
         return Identification("chd", evidence="container", chd_sha1=digest)
+    for offset in (16 * 2048, 16 * 2352 + 16, 16 * 2352 + 24):
+        descriptor = data[offset : offset + 7]
+        if (
+            len(descriptor) == 7
+            and descriptor[0] in (0, 1, 2, 255)
+            and descriptor[1:] == b"CD001\x01"
+        ):
+            return Identification("disc", evidence="container")
     return Identification()
 
 
@@ -199,11 +223,19 @@ def identify_archive(stream: io.IOBase) -> Identification:
             platforms = sorted(
                 {platform for match in matches for platform in match.platforms}
             )
-            if matches and all(match.platforms for match in matches):
+            if len(platforms) > 1 or (
+                matches and all(match.platforms for match in matches)
+            ):
                 return Identification(
                     "zip", platforms, "archive-headers", members=names
                 )
-            return Identification("zip", evidence="unknown-members", members=names)
+            return Identification(
+                "zip",
+                evidence="unknown-members",
+                members=names,
+                contains_disc=any(match.format in DISC_FORMATS for match in matches),
+                partial_platforms=platforms,
+            )
     except SampleUnavailable:
         return Identification("zip", evidence="incomplete-sample")
     except (zipfile.BadZipFile, EOFError, ValueError, zlib.error):
@@ -237,10 +269,7 @@ def platform_conflict(result: Identification, platform_slug: str) -> bool:
         return True
     if result.platforms:
         return len(result.platforms) != 1 or platform_slug not in result.platforms
-    return (
-        result.format in {"chd", "disc", "compressed-disc"}
-        and platform_slug in CARTRIDGE_PLATFORMS
-    )
+    return platform_slug in result.incompatible_platforms
 
 
 def identify_library_match(
@@ -289,6 +318,10 @@ def validate_platform_file(
         elif result.platforms:
             reason = (
                 f"File contents identify {result.platforms[0]}, not {platform_slug}"
+            )
+        elif result.partial_platforms:
+            reason = "The archive contains a file for " + ", ".join(
+                result.partial_platforms
             )
         else:
             reason = f"A disc image cannot be uploaded as a {platform_slug} cartridge"

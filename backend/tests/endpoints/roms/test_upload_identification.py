@@ -221,6 +221,23 @@ class UploadIdentificationEndpointTests(unittest.TestCase):
         self.assertIn("invalid or incomplete", response.json()["detail"])
         self.assertEqual(list(self.root.iterdir()), [])
 
+    def test_disc_inside_zip_is_blocked_at_preflight_and_publication(self):
+        data = bytearray(16 * 2048 + 7)
+        data[-7:] = b"\x01CD001\x01"
+        ensure_zipfile_writable()
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("unknown.iso", data)
+        self.payload = output.getvalue()
+        response = self.inspect()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["platforms"], [])
+        self.assertIn("n64", response.json()["incompatible_platforms"])
+        response = self.complete()
+        self.assertEqual(response.status_code, 400, response.text)
+        self.assertIn("disc image", response.json()["detail"])
+        self.assertEqual(list(self.root.iterdir()), [])
+
     def test_rejection_preserves_existing_destination(self):
         self.payload = game_zip("genesis")
         self.destination.location.write_bytes(b"existing")
