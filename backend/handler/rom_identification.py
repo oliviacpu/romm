@@ -23,6 +23,7 @@ CARTRIDGE_PLATFORMS = frozenset(
         UPS.SNES,
         UPS.GENESIS,
         UPS.SEGA32,
+        UPS.SEGA_PICO,
         UPS.SMS,
         UPS.GAMEGEAR,
         UPS.GB,
@@ -54,6 +55,8 @@ def identify_header(data: bytes) -> Identification:
         return Identification("disc", [UPS.SEGACD], "header")
     if data[0x100:0x108] == b"SEGA 32X":
         return Identification("cartridge", [UPS.SEGA32], "header")
+    if data[0x100:0x109] == b"SEGA PICO":
+        return Identification("cartridge", [UPS.SEGA_PICO], "header")
     if data[0x100:0x104] == b"SEGA":
         return Identification("cartridge", [UPS.GENESIS], "header")
     for offset in (0x1FF0, 0x3FF0, 0x7FF0):

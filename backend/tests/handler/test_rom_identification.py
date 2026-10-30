@@ -58,6 +58,11 @@ class RomIdentificationTests(unittest.TestCase):
         data[:14] = b"SEGADISCSYSTEM"
         self.assertEqual(identify_header(bytes(data)).platforms, ["segacd"])
 
+    def test_sega_pico_does_not_fall_through_to_genesis(self):
+        data = bytearray(512)
+        data[0x100:0x109] = b"SEGA PICO"
+        self.assertEqual(identify_header(bytes(data)).platforms, ["sega-pico"])
+
     def test_raw_cd_headers_need_the_sector_sync_marker(self):
         for offset in (16, 24):
             data = bytearray(256)
