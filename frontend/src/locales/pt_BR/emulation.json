@@ -7,9 +7,10 @@
   "button-r3": "Clique no analógico direito",
   "button-share": "Share (seta saindo de uma bandeja)",
   "button-view": "View (quadrados sobrepostos)",
+  "console-function": "Função do console ou emulador, não um botão deste controle.",
   "controller": "Controle Xbox",
   "controller-help": "Associe os botões Xbox aos do console. Confirmar e cancelar podem variar entre jogos.",
-  "diagram-help": "Os desenhos mostram os botões configurados. Os analógicos mantêm os padrões do emulador.",
+  "diagram-help": "Selecione um botão do console e depois um botão Xbox para atribuí-lo. Os analógicos mantêm os padrões do emulador.",
   "inherit": "Usar configuração herdada",
   "launch-help": "As configurações salvas serão aplicadas na próxima inicialização pelo Aurora ou por um cliente Sunshine.",
   "mapping-unavailable": "Este emulador ainda não permite remapear botões.",
@@ -29,6 +30,7 @@
   "platform-default": "Padrão da plataforma",
   "quit-help": "Sair: mantenha o clique do analógico esquerdo e Menu pressionados por dois segundos. Este atalho é independente dos controles do jogo.",
   "quit-shortcut": "Sair do jogo (segurar dois segundos)",
+  "rear-control": "Controle superior ou traseiro, mostrado acima da vista frontal.",
   "refresh": "@:settings.streaming-refresh",
   "reset": "Limpar personalizações",
   "resolution": "Resolução de renderização",
@@ -43,6 +45,7 @@
   "shortcuts": "Atalhos do controle",
   "stale": "O iniciador parou de responder. Verifique o Sunshine antes de alterar as configurações.",
   "title": "RomM + Sunshine",
+  "unassigned": "Não atribuído",
   "unavailable": "Não foi possível carregar os dados da integração.",
   "widescreen-help": "Ative 16:9 apenas em jogos com suporte nativo ou uma modificação compatível. Outros jogos podem ficar esticados ou apresentar falhas."
 }

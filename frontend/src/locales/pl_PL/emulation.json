@@ -7,9 +7,10 @@
   "button-r3": "Wciśnięcie prawego drążka",
   "button-share": "Share (strzałka wychodząca z tacki)",
   "button-view": "View (nakładające się kwadraty)",
+  "console-function": "Funkcja konsoli lub emulatora, a nie przycisk tego kontrolera.",
   "controller": "Kontroler Xbox",
   "controller-help": "Przypisz przyciski Xbox do przycisków konsoli. Potwierdzanie i anulowanie mogą zależeć od gry.",
-  "diagram-help": "Schematy pokazują skonfigurowane przyciski. Ruchy drążków zachowują domyślne ustawienia emulatora.",
+  "diagram-help": "Wybierz przycisk konsoli, a następnie przypisz mu przycisk Xbox. Drążki zachowują ustawienia emulatora.",
   "inherit": "Użyj ustawienia nadrzędnego",
   "launch-help": "Zapisane ustawienia zostaną zastosowane przy następnym uruchomieniu przez Aurora lub klienta Sunshine.",
   "mapping-unavailable": "Ten emulator nie obsługuje jeszcze zmiany przypisania przycisków.",
@@ -29,6 +30,7 @@
   "platform-default": "Domyślne ustawienia platformy",
   "quit-help": "Wyjście: przytrzymaj wciśnięty lewy drążek i Menu przez dwie sekundy. Ten skrót jest niezależny od ustawień gry.",
   "quit-shortcut": "Wyjdź z gry (przytrzymaj dwie sekundy)",
+  "rear-control": "Przycisk górny lub tylny, pokazany nad widokiem z przodu.",
   "refresh": "@:settings.streaming-refresh",
   "reset": "Usuń nadpisania",
   "resolution": "Rozdzielczość renderowania",
@@ -43,6 +45,7 @@
   "shortcuts": "Skróty kontrolera",
   "stale": "Program uruchamiający przestał odpowiadać. Sprawdź Sunshine przed zmianą ustawień.",
   "title": "RomM + Sunshine",
+  "unassigned": "Nieprzypisany",
   "unavailable": "Nie udało się załadować danych integracji.",
   "widescreen-help": "Włączaj 16:9 tylko dla gier z natywną obsługą lub zgodną poprawką. Inne gry mogą być rozciągnięte lub mieć błędy obrazu."
 }

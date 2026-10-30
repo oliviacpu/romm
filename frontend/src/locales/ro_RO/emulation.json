@@ -7,9 +7,10 @@
   "button-r3": "Apăsare stick drept",
   "button-share": "Share (săgeată care iese din tavă)",
   "button-view": "View (pătrate suprapuse)",
+  "console-function": "Funcție a consolei sau emulatorului, nu un buton al acestui controler.",
   "controller": "Controler Xbox",
   "controller-help": "Asociați butoanele Xbox cu butoanele consolei. Confirmarea și anularea pot varia între jocuri.",
-  "diagram-help": "Schițele arată butoanele configurate. Mișcarea stickurilor păstrează setările implicite ale emulatorului.",
+  "diagram-help": "Selectează un buton al consolei, apoi un buton Xbox pentru a-l atribui. Stickurile păstrează setările emulatorului.",
   "inherit": "Folosește setarea moștenită",
   "launch-help": "Setările salvate se aplică la următoarea lansare din Aurora sau orice client Sunshine.",
   "mapping-unavailable": "Remaparea butoanelor nu este încă disponibilă pentru acest emulator.",
@@ -29,6 +30,7 @@
   "platform-default": "Implicit pentru platformă",
   "quit-help": "Ieșire: țineți apăsate stickul stâng și Menu timp de două secunde. Această comandă este independentă de maparea jocului.",
   "quit-shortcut": "Ieși din joc (ține apăsat două secunde)",
+  "rear-control": "Comandă superioară sau din spate, afișată deasupra vederii frontale.",
   "refresh": "@:settings.streaming-refresh",
   "reset": "Șterge suprascrierile",
   "resolution": "Rezoluție de randare",
@@ -43,6 +45,7 @@
   "shortcuts": "Comenzi rapide pentru controler",
   "stale": "Lansatorul nu mai raportează. Verificați Sunshine înainte de a modifica setările.",
   "title": "RomM + Sunshine",
+  "unassigned": "Neatribuit",
   "unavailable": "Datele integrării nu au putut fi încărcate.",
   "widescreen-help": "Activați 16:9 doar pentru jocuri cu suport nativ sau un patch compatibil. Alte jocuri pot fi deformate sau pot afișa erori grafice."
 }

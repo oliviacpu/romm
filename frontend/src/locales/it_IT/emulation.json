@@ -7,9 +7,10 @@
   "button-r3": "Clic della levetta destra",
   "button-share": "Share (freccia che esce da un vassoio)",
   "button-view": "View (quadrati sovrapposti)",
+  "console-function": "Funzione della console o dell’emulatore, non un pulsante di questo controller.",
   "controller": "Controller Xbox",
   "controller-help": "Assegna i pulsanti Xbox a quelli della console. Conferma e annullamento possono variare tra i giochi.",
-  "diagram-help": "Gli schemi mostrano i pulsanti configurati. Il movimento delle levette mantiene le impostazioni dell’emulatore.",
+  "diagram-help": "Seleziona un pulsante della console, poi quello Xbox da assegnare. Le levette mantengono le impostazioni dell’emulatore.",
   "inherit": "Usa impostazione ereditata",
   "launch-help": "Le impostazioni salvate si applicano al prossimo avvio da Aurora o da un client Sunshine.",
   "mapping-unavailable": "La rimappatura non è ancora disponibile per questo emulatore.",
@@ -29,6 +30,7 @@
   "platform-default": "Predefinito della piattaforma",
   "quit-help": "Esci: tieni premuti lo stick sinistro e Menu per due secondi. Questa scorciatoia è indipendente dai comandi di gioco.",
   "quit-shortcut": "Esci dal gioco (tieni premuto due secondi)",
+  "rear-control": "Comando superiore o posteriore, mostrato sopra la vista frontale.",
   "refresh": "@:settings.streaming-refresh",
   "reset": "Cancella personalizzazioni",
   "resolution": "Risoluzione di rendering",
@@ -43,6 +45,7 @@
   "shortcuts": "Scorciatoie del controller",
   "stale": "Il programma di avvio non risponde più. Controlla Sunshine prima di modificare le impostazioni.",
   "title": "RomM + Sunshine",
+  "unassigned": "Non assegnato",
   "unavailable": "Impossibile caricare i dati dell’integrazione.",
   "widescreen-help": "Attiva 16:9 solo per giochi compatibili o con una patch adatta. Gli altri giochi potrebbero risultare deformati o mostrare difetti."
 }

@@ -5,6 +5,7 @@ import type {
   EmulationProfileResponse,
   EmulationStatus,
 } from "@/__generated__";
+import ControllerAssignments from "@/v2/components/Settings/ControllerAssignments.vue";
 import EmulationSection from "@/v2/components/Settings/EmulationSection.vue";
 
 const { status, profile, save, success, error } = vi.hoisted(() => ({
@@ -123,6 +124,49 @@ describe("Sunshine emulation profiles", () => {
       profile: { bindings: { b: "x", x: "b" } },
     });
     expect(success).toHaveBeenCalledWith("emulation.saved");
+    wrapper.unmount();
+  });
+
+  it("maps a selected console outline button through the Xbox outline and saves the swap", async () => {
+    const wrapper = await mountSection();
+    const [consoleDiagram, xboxDiagram] = wrapper.findAllComponents(
+      ControllerAssignments,
+    );
+    expect(consoleDiagram?.props("system")).toBe("ps2");
+    consoleDiagram?.vm.$emit("select", "b");
+    await flushPromises();
+    xboxDiagram?.vm.$emit("select", "x");
+    await flushPromises();
+    expect(consoleDiagram?.props("selected")).toBe("b");
+    expect(consoleDiagram?.props("assignments")).toMatchObject({
+      b: "X",
+      x: "B",
+    });
+    expect(xboxDiagram?.props("selected")).toBe("x");
+    wrapper.findComponent(RForm).vm.$emit("submit", new Event("submit"));
+    await flushPromises();
+    expect(save).toHaveBeenCalledWith("ps2", null, {
+      revision: 2,
+      profile: { bindings: { b: "x", x: "b" } },
+    });
+    wrapper.unmount();
+  });
+
+  it("keeps shortcut-only buttons and triggers out of digital gameplay assignments", async () => {
+    const wrapper = await mountSection();
+    const xboxDiagram = wrapper.findAllComponents(ControllerAssignments)[1];
+    expect(xboxDiagram?.props("assignments").share).toBe(
+      "emulation.menu-shortcut",
+    );
+    xboxDiagram?.vm.$emit("select", "share");
+    xboxDiagram?.vm.$emit("select", "lt");
+    await flushPromises();
+    wrapper.findComponent(RForm).vm.$emit("submit", new Event("submit"));
+    await flushPromises();
+    expect(save).toHaveBeenCalledWith("ps2", null, {
+      revision: 2,
+      profile: { bindings: {} },
+    });
     wrapper.unmount();
   });
 
