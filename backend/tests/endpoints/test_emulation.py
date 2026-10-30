@@ -155,6 +155,60 @@ class EmulationEndpointTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 422)
 
+    def test_shortcuts_inherit_override_and_reset_per_game(self):
+        platform = self.client.put(
+            "/api/emulation/profiles/ps2",
+            headers=self.headers,
+            json={"revision": 0, "profile": {"menu_shortcut": "share"}},
+        )
+        self.assertEqual(platform.status_code, 200)
+        route = f"/api/emulation/profiles/ps2?game_id={self.game_id}"
+        game = self.client.put(
+            route,
+            headers=self.headers,
+            json={"revision": 1, "profile": {"quit_shortcut": "view_y"}},
+        )
+        self.assertEqual(game.status_code, 200)
+        self.assertEqual(game.json()["effective"]["menu_shortcut"], "share")
+        self.assertEqual(game.json()["effective"]["quit_shortcut"], "view_y")
+        reset = self.client.put(
+            route, headers=self.headers, json={"revision": 2, "profile": {}}
+        )
+        self.assertEqual(reset.status_code, 200)
+        self.assertEqual(reset.json()["effective"]["quit_shortcut"], "l3_menu")
+        self.assertEqual(reset.json()["effective"]["menu_shortcut"], "share")
+
+    def test_invalid_and_conflicting_shortcuts_do_not_save(self):
+        for system, profile in [
+            ("ps2", {"menu_shortcut": "unknown"}),
+            ("ps2", {"quit_shortcut": "none"}),
+            ("ps2", {"menu_shortcut": "share", "quit_shortcut": "share"}),
+            ("gc", {"menu_shortcut": "share"}),
+        ]:
+            with self.subTest(system=system, profile=profile):
+                result = self.client.put(
+                    f"/api/emulation/profiles/{system}",
+                    headers=self.headers,
+                    json={"revision": 0, "profile": profile},
+                )
+                self.assertEqual(result.status_code, 422)
+                self.assertFalse((self.root / "profiles.json").exists())
+
+    def test_platform_shortcut_change_cannot_conflict_with_a_game(self):
+        save_profile(self.root, "ps2", self.game_id, {"quit_shortcut": "share"}, 0)
+        result = self.client.put(
+            "/api/emulation/profiles/ps2",
+            headers=self.headers,
+            json={"revision": 1, "profile": {"menu_shortcut": "share"}},
+        )
+        self.assertEqual(result.status_code, 422)
+        saved = json.loads((self.root / "profiles.json").read_text())
+        self.assertEqual(saved["revision"], 1)
+        self.assertEqual(
+            effective_profile(saved, "ps2", self.game_id)["menu_shortcut"],
+            "both_sticks",
+        )
+
     def test_corrupt_status_is_reported_as_unavailable(self):
         (self.root / "sessions.json").write_text("not JSON")
         response = self.client.get("/api/emulation", headers=self.headers)

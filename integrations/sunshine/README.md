@@ -9,6 +9,9 @@ In RomM v2, open **Settings → Administration → Streaming → RomM + Sunshine
 Choose a platform or a game, edit its mappings and video options, then save.
 Choosing a physical button swaps its previous assignment. Clearing overrides
 restores inheritance after saving. Platform and game selections remain in the URL.
+Xbox Series and console controller outlines show the current configured button
+assignments in both directions. The schematic changes with the selected platform
+and updates while editing. Stick movement retains the emulator's existing axes.
 
 The launcher retains the last 30 sessions, with up to 40 messages each. Messages
 include their emulator or Sunshine source and remain available after the game
@@ -39,10 +42,20 @@ default to matching Xbox labels; N64 A and B default to Xbox A and B. Game menu
 conventions can still differ. Triggers can be swapped with one another while
 retaining analog input. Stick axes remain at their existing mappings.
 
-The global quit shortcut is **left stick click + Menu held for two seconds**.
-Both stick clicks open the RetroArch menu and the PCSX2 pause menu. Apple TV may
-intercept View + Menu and the Xbox Guide button; Share is not used. Physical
-controller acceptance must be checked through the actual streaming client.
+Menu and quit shortcuts are configurable in the same platform and game profiles.
+Menu defaults to both stick clicks; quit defaults to left stick click + Menu held
+for two seconds. Choices include Share, Xbox/Guide, both shoulders, and View + Y.
+They use physical buttons independently of game mappings. Menu actions open PCSX2's
+pause menu, RetroArch's menu, Flycast's menu, or xemu's popup menu. Dolphin's native
+desktop interface does not offer a controller-operated menu here; quit works.
+Apple TV and emulators can reserve Xbox/Guide or View + Menu independently.
+
+Share requires Sunshine's `gamepad = xseries` profile and a client that forwards
+the button. Aurora forwards it when exposed by tvOS. The installed Sunshine build's
+Linux uinput profile exposes Share as `KEY_RECORD`. Physical controller acceptance
+must still be checked through the streaming client. The virtual Series profile's
+SDL name is `Xbox Series X Controller`; changing profiles also requires updating
+xemu's port-one GUID and Dolphin's device identity. Back up these files first.
 
 ## Deployment
 
@@ -74,9 +87,10 @@ pairings. The launcher publishes its catalog and heartbeat there. API access
 requires administrator role and the appropriate read or write scope. With no
 mount or environment setting, the integration reports itself as unconfigured.
 
-Flycast and xemu remaps require the existing Sunshine SDL baseline in
+Flycast and xemu remaps use the existing Sunshine SDL baseline in
 `/config/pcsx2/PCSX2/game_controller_db.txt`, named `Xbox 360 via Sunshine`.
-The adapter derives raw button and axis bindings from that baseline and passes
+The adapter also includes the measured Xbox Series baseline for the pinned Linux
+uinput profile. It derives raw button and axis bindings from these baselines and passes
 the requested mapping through `SDL_GAMECONTROLLERCONFIG`. Existing Flycast
 device-specific mappings can override SDL defaults and need individual review.
 

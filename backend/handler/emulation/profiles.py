@@ -28,14 +28,27 @@ BUTTONS = {
     "rb": "RB",
     "lt": "LT",
     "rt": "RT",
-    "view": "View",
-    "menu": "Menu",
+    "view": "View (overlapping squares)",
+    "menu": "Menu (three lines)",
     "l3": "Left stick click",
     "r3": "Right stick click",
     "up": "D-pad up",
     "down": "D-pad down",
     "left": "D-pad left",
     "right": "D-pad right",
+}
+ACTION_BUTTONS = BUTTONS | {
+    "guide": "Xbox / Guide",
+    "share": "Share (arrow out of tray)",
+}
+SHORTCUTS = {
+    "both_sticks": ["l3", "r3"],
+    "share": ["share"],
+    "guide": ["guide"],
+    "lb_rb": ["lb", "rb"],
+    "l3_menu": ["l3", "menu"],
+    "view_y": ["view", "y"],
+    "none": [],
 }
 COMMON = {
     key: key
@@ -232,6 +245,8 @@ DEFAULT_PROFILE = {
     "aspect": "original",
     "osd_scale": 200,
     "bindings": {},
+    "menu_shortcut": "both_sticks",
+    "quit_shortcut": "l3_menu",
 }
 MAX_SESSIONS = 30
 MAX_MESSAGES = 40
@@ -294,6 +309,16 @@ def validate_profile(system: str, profile: dict[str, Any]) -> dict[str, Any]:
     scale = profile.get("osd_scale", 200)
     if type(scale) is not int or not 100 <= scale <= 300:
         raise ValueError("Message size must be between 100 and 300 percent")
+    for action in ("menu", "quit"):
+        shortcut = profile.get(
+            action + "_shortcut", DEFAULT_PROFILE[action + "_shortcut"]
+        )
+        if not isinstance(shortcut, str) or shortcut not in SHORTCUTS:
+            raise ValueError("Unknown controller shortcut")
+        if action == "quit" and shortcut == "none":
+            raise ValueError("A quit shortcut is required")
+    if system == "gc" and profile.get("menu_shortcut", "none") != "none":
+        raise ValueError("Dolphin does not provide a controller-operated emulator menu")
     bindings = profile.get("bindings", {})
     if not isinstance(bindings, dict) or len(bindings) > len(BUTTONS):
         raise ValueError("Invalid controller mapping")
@@ -319,9 +344,12 @@ def effective_profile(
     result: dict[str, Any] = (
         DEFAULT_PROFILE
         | ({"aspect": "auto"} if system == "ps2" else {})
+        | ({"menu_shortcut": "none"} if system == "gc" else {})
         | platform
         | game
     )
+    if result["menu_shortcut"] == result["quit_shortcut"]:
+        raise ValueError("Menu and quit must use different shortcuts")
     default_bindings = COMMON | (
         {"a": "b", "b": "a", "x": "y", "y": "x"} if system in NINTENDO_SYSTEMS else {}
     )
@@ -360,7 +388,7 @@ def save_profile(
                     except ValueError as error:
                         raise ValueError(
                             "Platform changes conflict with a game override. "
-                            "Clear that game's button overrides before saving."
+                            "Clear that game's overrides before saving."
                         ) from error
         document["revision"] += 1
         atomic_json(root / "profiles.json", document)

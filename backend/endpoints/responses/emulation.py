@@ -12,6 +12,8 @@ class EmulationProfile(BaseModel):
     aspect: Literal["original", "16:9", "auto"] | None = None
     osd_scale: int | None = Field(default=None, ge=100, le=300)
     bindings: dict[str, str] = Field(default_factory=dict, max_length=len(BUTTONS))
+    menu_shortcut: str | None = None
+    quit_shortcut: str | None = None
 
 
 class EmulationProfileRequest(BaseModel):
@@ -65,4 +67,6 @@ class EmulationStatus(BaseModel):
     platforms: list[EmulationPlatform] = Field(default_factory=list)
     games: list[EmulationGame] = Field(default_factory=list)
     buttons: dict[str, str] = Field(default_factory=dict)
+    action_buttons: dict[str, str] = Field(default_factory=dict)
+    shortcuts: dict[str, list[str]] = Field(default_factory=dict)
     sessions: list[EmulationSession] = Field(default_factory=list)

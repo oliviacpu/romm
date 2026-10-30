@@ -11,6 +11,8 @@ export type EmulationStatus = {
     platforms?: Array<EmulationPlatform>;
     games?: Array<EmulationGame>;
     buttons?: Record<string, string>;
+    action_buttons?: Record<string, string>;
+    shortcuts?: Record<string, Array<string>>;
     sessions?: Array<EmulationSession>;
 };
 
