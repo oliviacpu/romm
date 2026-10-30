@@ -11,10 +11,11 @@
   "controller": "Mando Xbox",
   "controller-help": "Asigna los botones Xbox a los de la consola. Confirmar y cancelar pueden variar según el juego.",
   "diagram-help": "Selecciona un botón de la consola y luego uno de Xbox para asignarlo. Los sticks conservan los ajustes del emulador.",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "Usar ajuste heredado",
   "launch-help": "Los ajustes guardados se aplican en el próximo inicio desde Aurora o cualquier cliente Sunshine.",
   "mapping-unavailable": "Este emulador aún no permite reasignar botones.",
-  "menu-shortcut": "Abrir menú del emulador",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "Dolphin no ofrece aquí un menú manejable con mando. El atajo para salir sigue funcionando.",
   "message-size": "Tamaño de los mensajes",
   "message-size-help": "Se aplica a PCSX2 y RetroArch. El tamaño para TV predeterminado es 200 %.",
@@ -41,11 +42,11 @@
   "scope": "Ajuste por juego",
   "share-help": "Share necesita el mando virtual Xbox Series de Sunshine y un cliente que lo transmita. Apple TV puede reservar Xbox/Guide y View + Menu.",
   "shortcut-conflict": "Elige atajos distintos para el menú y para salir.",
-  "shortcut-help": "Los atajos del menú se activan una vez por pulsación. Para salir, mantén dos segundos. Usan los botones físicos Xbox y se heredan por plataforma y juego.",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "Atajos del mando",
   "stale": "El lanzador ha dejado de informar. Comprueba Sunshine antes de cambiar los ajustes.",
   "title": "RomM + Sunshine",
   "unassigned": "Sin asignar",
   "unavailable": "No se pudieron cargar los datos de integración.",
-  "widescreen-help": "Activa 16:9 solo si el juego lo admite o tiene un parche compatible. Otros juegos pueden verse estirados o mostrar errores."
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }

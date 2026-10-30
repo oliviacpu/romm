@@ -198,6 +198,34 @@ describe("Sunshine emulation profiles", () => {
     wrapper.unmount();
   });
 
+  it("allows a GameCube session menu shortcut", async () => {
+    const catalog = listing();
+    catalog.platforms = [
+      { ...catalog.platforms![0]!, id: "gc", label: "GameCube" },
+    ];
+    catalog.games = [];
+    status.mockResolvedValue({ data: catalog });
+    const wrapper = await mountSection();
+    const platform = wrapper
+      .findAllComponents({ name: "RSelect" })
+      .find((select) => select.props("label") === "emulation.platform");
+    platform?.vm.$emit("update:modelValue", "gc");
+    await flushPromises();
+    const menu = wrapper
+      .findAllComponents({ name: "RSelect" })
+      .find((select) => select.props("label") === "emulation.menu-shortcut");
+    expect(menu?.props("disabled")).toBe(false);
+    menu?.vm.$emit("update:modelValue", "share");
+    await flushPromises();
+    wrapper.findComponent(RForm).vm.$emit("submit", new Event("submit"));
+    await flushPromises();
+    expect(save).toHaveBeenCalledWith("gc", null, {
+      revision: 2,
+      profile: { bindings: {}, menu_shortcut: "share" },
+    });
+    wrapper.unmount();
+  });
+
   it("blocks conflicting shortcuts and allows correction", async () => {
     const wrapper = await mountSection();
     const quit = wrapper

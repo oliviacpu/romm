@@ -11,10 +11,11 @@
   "controller": "Xbox controller",
   "controller-help": "Choose the Xbox button for each console button. Game menus may use different confirm and cancel buttons.",
   "diagram-help": "Select a console button, then an Xbox button to assign it. Stick movement keeps emulator defaults.",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "Use inherited setting",
   "launch-help": "Saved settings apply on the next launch from Aurora or any Sunshine client.",
   "mapping-unavailable": "Button remapping is not available for this emulator yet.",
-  "menu-shortcut": "Open emulator menu",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "Dolphin has no controller-operated emulator menu here. The quit shortcut still works.",
   "message-size": "Message size",
   "message-size-help": "Applies to PCSX2 and RetroArch. The default TV size is 200%.",
@@ -41,11 +42,11 @@
   "scope": "Game override",
   "share-help": "Share requires Sunshine's Xbox Series virtual controller and a client that forwards it. Apple TV may reserve Xbox/Guide and View + Menu.",
   "shortcut-conflict": "Choose different shortcuts for menu and quit.",
-  "shortcut-help": "Menu shortcuts activate once per press. Quit requires a two-second hold. These use physical Xbox buttons and inherit per platform and game.",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "Controller shortcuts",
   "stale": "The launcher has stopped reporting. Check Sunshine before changing settings.",
   "title": "RomM + Sunshine",
   "unassigned": "Not assigned",
   "unavailable": "Integration data could not be loaded.",
-  "widescreen-help": "Enable 16:9 only for a game with native widescreen or a compatible patch. Other games may stretch or show glitches."
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }

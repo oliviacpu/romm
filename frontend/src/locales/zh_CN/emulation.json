@@ -11,10 +11,11 @@
   "controller": "Xbox 手柄",
   "controller-help": "为每个主机按键指定 Xbox 按键。确认和取消按键可能因游戏而异。",
   "diagram-help": "选择主机按键，再选择要分配的Xbox按键。摇杆移动保留模拟器设置。",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "使用继承设置",
   "launch-help": "保存的设置将在下次通过 Aurora 或 Sunshine 客户端启动游戏时应用。",
   "mapping-unavailable": "此模拟器暂不支持按键重映射。",
-  "menu-shortcut": "打开模拟器菜单",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "此处 Dolphin 没有可用控制器操作的模拟器菜单。退出快捷键仍可使用。",
   "message-size": "消息大小",
   "message-size-help": "适用于 PCSX2 和 RetroArch。电视默认大小为 200%。",
@@ -41,11 +42,11 @@
   "scope": "游戏独立设置",
   "share-help": "Share 需要 Sunshine 的 Xbox Series 虚拟控制器及支持转发此键的客户端。Apple TV 可能会占用 Xbox/Guide 和 View + Menu。",
   "shortcut-conflict": "请为菜单和退出选择不同的快捷键。",
-  "shortcut-help": "菜单每次按下只触发一次。退出需要长按两秒。快捷键使用 Xbox 实体按键，并按平台和游戏继承设置。",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "控制器快捷键",
   "stale": "启动器已停止报告状态。更改设置前请检查 Sunshine。",
   "title": "RomM + Sunshine",
   "unassigned": "未分配",
   "unavailable": "无法加载集成数据。",
-  "widescreen-help": "仅对原生支持宽屏或有兼容补丁的游戏启用 16:9。其他游戏可能被拉伸或出现画面问题。"
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }

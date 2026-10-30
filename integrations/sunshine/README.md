@@ -26,7 +26,7 @@ PCSX2 messages default to 200% size. RetroArch uses a larger message font.
 | PCSX2           | Native pad configuration | Native, 720p, 1080p, 1440p presets | Original, automatic widescreen patches, explicit 16:9 |
 | Dolphin         | Native pad configuration | Native, 720p, 1080p, 1440p presets | Original or 16:9 for games with native support        |
 | Flycast         | SDL controller mapping   | 480p, 720p, 1080p, 1440p           | Original or widescreen hack, selected per game        |
-| xemu            | SDL controller mapping   | Existing native settings           | Existing console and game settings                    |
+| xemu            | SDL controller mapping   | Native, 720p, 1080p, 1440p presets | Automatic game aspect or explicit 16:9                |
 | RetroArch cores | Core remap file          | Existing core settings             | Existing core settings                                |
 
 Resolution presets are approximate for games with different native heights.
@@ -34,7 +34,7 @@ They change emulator rendering; choose streaming resolution and bitrate in
 Aurora. A higher rendering resolution does not make an unsupported game widescreen.
 PCSX2's automatic option applies available bundled patches and lets each patch
 select its aspect ratio. Forced widescreen may cause stretched images or culling
-artifacts. Dolphin's generic widescreen hack remains off.
+artifacts. Dolphin's original setting uses automatic game-aspect detection, including native widescreen selected inside a game. Its generic widescreen hack remains off.
 
 RetroArch keeps frontend input bindings fixed and generates core remaps, so game
 overrides do not change menu confirmation or cancellation. Nintendo face buttons
@@ -45,10 +45,20 @@ retaining analog input. Stick axes remain at their existing mappings.
 Menu and quit shortcuts are configurable in the same platform and game profiles.
 Menu defaults to both stick clicks; quit defaults to left stick click + Menu held
 for two seconds. Choices include Share, Xbox/Guide, both shoulders, and View + Y.
-They use physical buttons independently of game mappings. Menu actions open PCSX2's
-pause menu, RetroArch's menu, Flycast's menu, or xemu's popup menu. Dolphin's native
-desktop interface does not offer a controller-operated menu here; quit works.
-Apple TV and emulators can reserve Xbox/Guide or View + Menu independently.
+They use physical buttons independently of game mappings. Every platform opens the
+same host-rendered session menu inside the Sunshine stream. D-pad moves, Xbox A
+confirms, and Xbox B goes back. The menu includes resume, controller assignments,
+graphics, recent warnings, restart, and quit confirmation. Settings use RomM's
+existing profile file and revision lock, with platform defaults and game overrides.
+Saving does not restart the game; choose restart explicitly after saving progress.
+
+The menu waits for the opening shortcut to be released, takes exclusive controller
+input, then suspends the game. Resume waits for menu buttons to be released before
+returning input. A crashed menu releases input and resumes the game. Native emulator
+and disc controls remain accessible for PCSX2, RetroArch, Flycast, and xemu; Dolphin's
+desktop interface has no controller-operated disc adapter here. The menu runs as the
+existing emulator user over the private control socket, without a web port or Docker
+access. Apple TV can reserve Xbox/Guide or View + Menu independently.
 
 Share requires Sunshine's `gamepad = xseries` profile and a client that forwards
 the button. Aurora forwards it when exposed by tvOS. The installed Sunshine build's

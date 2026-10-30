@@ -116,8 +116,8 @@ PLATFORMS: dict[str, PlatformSpec] = {
             "view": "Back",
             "menu": "Start",
         },
-        "resolutions": ["native"],
-        "widescreen": False,
+        "resolutions": ["native", "720p", "1080p", "1440p"],
+        "widescreen": True,
         "mapping": True,
     },
 }
@@ -317,8 +317,6 @@ def validate_profile(system: str, profile: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("Unknown controller shortcut")
         if action == "quit" and shortcut == "none":
             raise ValueError("A quit shortcut is required")
-    if system == "gc" and profile.get("menu_shortcut", "none") != "none":
-        raise ValueError("Dolphin does not provide a controller-operated emulator menu")
     bindings = profile.get("bindings", {})
     if not isinstance(bindings, dict) or len(bindings) > len(BUTTONS):
         raise ValueError("Invalid controller mapping")
@@ -344,7 +342,6 @@ def effective_profile(
     result: dict[str, Any] = (
         DEFAULT_PROFILE
         | ({"aspect": "auto"} if system == "ps2" else {})
-        | ({"menu_shortcut": "none"} if system == "gc" else {})
         | platform
         | game
     )

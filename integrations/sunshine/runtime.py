@@ -16,7 +16,9 @@ import time
 
 import catalog
 import firmware_handoff
+import menu_model
 import profile_runtime
+import session_overlay
 import shortcuts
 from systems import SYSTEMS, argv
 from systems import ready as system_ready
@@ -65,6 +67,7 @@ def state():
         "game_pid": game.pid if game and game.poll() is None else None,
         "game": current_game if game and game.poll() is None else None,
         "clients": connected,
+        "session_menu": overlay.process is not None,
         "disconnected_at": disconnected_at,
         "soak_until": soak_until,
         "last_event": last_event,
@@ -116,9 +119,13 @@ def close_process(p):
         p.wait(5)
 
 
+overlay = session_overlay.SessionOverlay(spawn)
+
+
 def close_game():
     global game, current_game, current_profile
     with lock:
+        overlay.close()
         close_process(game)
         game = None
         current_game = None
@@ -191,13 +198,63 @@ def launch_game(args):
         return {"ok": True, "pid": game.pid, "wait": "game"}
 
 
+def menu_request(action, payload):
+    with lock:
+        if not game or game.poll() is not None or payload.get("pid") != game.pid:
+            raise ValueError("This game session has ended")
+        if overlay.game != game:
+            raise ValueError("The session menu is not open")
+        if action == "menu-finish":
+            overlay.finish(payload["choice"])
+            return {"ok": True}
+        system = current_game["system"]
+        rom = pathlib.Path(
+            "/library/roms", SYSTEMS[system].romm_platform, current_game["file"]
+        )
+        game_id = profile_runtime.game_identity(system, rom)
+        scope = payload.get("scope", "game")
+        if scope not in ("game", "platform") or (scope == "game" and not game_id):
+            raise ValueError("Game profile is not in the catalog")
+        target = game_id if scope == "game" else None
+        document = None
+        if action == "menu-save":
+            document = profile_runtime.profiles.save_profile(
+                profile_runtime.ROOT,
+                system,
+                target,
+                payload["profile"],
+                payload["revision"],
+            )
+        elif action != "menu-settings":
+            raise ValueError("Unsupported session menu action")
+        sessions = profile_runtime.profiles.read_sessions(profile_runtime.ROOT)
+        messages = next(
+            (
+                row["messages"]
+                for row in reversed(sessions)
+                if row["id"] == profile_runtime.active_session_id
+            ),
+            [],
+        )
+        return {
+            "ok": True,
+            "system": system,
+            "title": rom.stem,
+            "native_menu": shortcuts.menu_key(system) is not None,
+            "messages": messages,
+            **menu_model.settings(profile_runtime.ROOT, system, target, document),
+        }
+
+
 class Handler(socketserver.StreamRequestHandler):
     def handle(self):
         global soak_until, backup_until
         try:
             request = json.loads(self.rfile.readline(16384))
             action = request["action"]
-            if action == "game":
+            if action.startswith("menu-"):
+                result = menu_request(action, request["args"])
+            elif action == "game":
                 result = launch_game(request["args"])
             elif action == "game-id":
                 system, rom = catalog.lookup(request["args"][0])
@@ -244,6 +301,9 @@ class Server(socketserver.ThreadingUnixStreamServer):
 
 
 def controller_action(action, active):
+    if action == "menu":
+        overlay.open(active)
+        return
     if action == "quit":
         close_game()
         return
@@ -294,9 +354,6 @@ def controller_watch():
                         devices[path] = dev
                     else:
                         dev.close()
-        if not devices:
-            time.sleep(1)
-            continue
         with lock:
             active = game if game and game.poll() is None else None
             if active != session:
@@ -312,6 +369,9 @@ def controller_watch():
                     if session is None or game != session or current_profile is None:
                         continue
                     for event in events:
+                        if overlay.process is not None:
+                            overlay.input(event)
+                            continue
                         if event.type == evdev.ecodes.EV_KEY:
                             pending.extend(
                                 tracker.event(
@@ -327,6 +387,37 @@ def controller_watch():
                 tracker.forget(path)
         with lock:
             active = game if game and game.poll() is None else None
+            try:
+                choice = overlay.tick(active, list(devices.values()), time.monotonic())
+                if choice:
+                    tracker = shortcuts.HeldShortcuts()
+                    if choice == "quit":
+                        close_game()
+                        continue
+                    if choice == "restart":
+                        restart = dict(current_game)
+                        close_game()
+                        launch_game(
+                            [
+                                restart["system"],
+                                str(
+                                    pathlib.Path(
+                                        "/library/roms",
+                                        SYSTEMS[restart["system"]].romm_platform,
+                                        restart["file"],
+                                    )
+                                ),
+                            ]
+                        )
+                        continue
+                    if choice == "native":
+                        controller_action("native", active)
+            except (OSError, subprocess.SubprocessError) as error:
+                overlay.close()
+                print("Session menu failed:", error, flush=True)
+            if overlay.process is not None:
+                tracker = shortcuts.HeldShortcuts()
+                continue
             if active is None or active != session or current_profile is None:
                 continue
             for path in devices:

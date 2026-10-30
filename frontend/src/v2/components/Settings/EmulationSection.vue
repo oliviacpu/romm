@@ -71,24 +71,32 @@ const xboxDiagramLabels = computed(() => ({
     ),
   ),
 }));
-const xboxAssignments = computed(() =>
-  Object.fromEntries([
-    ...bindings.value.map(([key, label]) => [binding(key), label]),
-    ...["share", "guide"].map((key) => [
+const xboxAssignments = computed(() => {
+  const assigned = Object.fromEntries(
+    bindings.value.map(([key, label]) => [binding(key), label]),
+  );
+  return Object.fromEntries(
+    Object.keys(xboxDiagramLabels.value).map((key) => [
       key,
-      ["menu", "quit"]
-        .filter((action) => {
-          const field = `${action}_shortcut` as
-            "menu_shortcut" | "quit_shortcut";
-          const id =
-            draft.value[field] ?? profile.state.value?.inherited[field];
-          return (status.state.value.shortcuts?.[id ?? ""] ?? []).includes(key);
-        })
-        .map((action) => t(`emulation.${action}-shortcut`))
+      [
+        assigned[key],
+        ...["menu", "quit"]
+          .filter((action) => {
+            const field = `${action}_shortcut` as
+              "menu_shortcut" | "quit_shortcut";
+            const id =
+              draft.value[field] ?? profile.state.value?.inherited[field];
+            return (status.state.value.shortcuts?.[id ?? ""] ?? []).includes(
+              key,
+            );
+          })
+          .map((action) => t(`emulation.${action}-shortcut`)),
+      ]
+        .filter(Boolean)
         .join(" / "),
     ]),
-  ]),
-);
+  );
+});
 const consoleAssignments = computed(() => {
   const names: Record<string, string> = {
     view: "View",
@@ -114,7 +122,6 @@ const resolutions = computed(() =>
   })),
 );
 const busy = computed(() => profile.isLoading.value || saving.value);
-const menuAvailable = computed(() => system.value !== "gc");
 const shortcutsConflict = computed(
   () =>
     (draft.value.menu_shortcut ??
@@ -208,7 +215,11 @@ function inheritedLabel(field: "resolution" | "aspect" | "osd_scale"): string {
       : value === "auto"
         ? t("emulation.auto")
         : value === "original"
-          ? t("emulation.original")
+          ? t(
+              system.value === "gc"
+                ? "emulation.game-aspect"
+                : "emulation.original",
+            )
           : field === "osd_scale"
             ? `${value}%`
             : String(value);
@@ -347,7 +358,14 @@ function timestamp(value: number): string {
               prefix-label="stacked"
               :items="[
                 { id: null, label: inheritedLabel('aspect') },
-                { id: 'original', label: t('emulation.original') },
+                {
+                  id: 'original',
+                  label: t(
+                    system === 'gc'
+                      ? 'emulation.game-aspect'
+                      : 'emulation.original',
+                  ),
+                },
                 ...(system === 'ps2'
                   ? [{ id: 'auto', label: t('emulation.auto') }]
                   : []),
@@ -433,7 +451,7 @@ function timestamp(value: number): string {
               item-title="label"
               item-value="id"
               :label="t('emulation.menu-shortcut')"
-              :disabled="saving || !menuAvailable"
+              :disabled="saving"
             />
             <RSelect
               v-model="draft.quit_shortcut"
@@ -445,7 +463,6 @@ function timestamp(value: number): string {
               :disabled="saving"
             />
           </div>
-          <p v-if="!menuAvailable">{{ t("emulation.menu-unavailable") }}</p>
           <p>{{ t("emulation.share-help") }}</p>
           <RAlert v-if="shortcutsConflict" type="warning">{{
             t("emulation.shortcut-conflict")

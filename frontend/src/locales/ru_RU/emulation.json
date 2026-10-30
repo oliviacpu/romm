@@ -11,10 +11,11 @@
   "controller": "Контроллер Xbox",
   "controller-help": "Назначьте кнопки Xbox кнопкам консоли. Подтверждение и отмена могут различаться в разных играх.",
   "diagram-help": "Выберите кнопку консоли, затем назначьте ей кнопку Xbox. Стики сохраняют настройки эмулятора.",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "Использовать унаследованную настройку",
   "launch-help": "Сохранённые настройки применятся при следующем запуске через Aurora или клиент Sunshine.",
   "mapping-unavailable": "Переназначение кнопок для этого эмулятора пока недоступно.",
-  "menu-shortcut": "Открыть меню эмулятора",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "Здесь у Dolphin нет меню, управляемого геймпадом. Сочетание для выхода работает.",
   "message-size": "Размер сообщений",
   "message-size-help": "Применяется к PCSX2 и RetroArch. Размер для телевизора по умолчанию: 200%.",
@@ -41,11 +42,11 @@
   "scope": "Настройки игры",
   "share-help": "Share требует виртуальный контроллер Xbox Series в Sunshine и клиент, передающий эту кнопку. Apple TV может перехватывать Xbox/Guide и View + Menu.",
   "shortcut-conflict": "Выберите разные сочетания для меню и выхода.",
-  "shortcut-help": "Меню открывается один раз за нажатие. Для выхода удерживайте две секунды. Используются физические кнопки Xbox; настройки наследуются для платформы и игры.",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "Сочетания кнопок геймпада",
   "stale": "Программа запуска перестала отвечать. Проверьте Sunshine перед изменением настроек.",
   "title": "RomM + Sunshine",
   "unassigned": "Не назначено",
   "unavailable": "Не удалось загрузить данные интеграции.",
-  "widescreen-help": "Включайте 16:9 только для игр с ширoкоэкранным режимом или совместимым патчем. Иначе возможны растяжение и графические ошибки."
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }

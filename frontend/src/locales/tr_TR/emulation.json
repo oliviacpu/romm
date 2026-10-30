@@ -11,10 +11,11 @@
   "controller": "Xbox kontrolcüsü",
   "controller-help": "Her konsol düğmesine bir Xbox düğmesi atayın. Onay ve iptal düğmeleri oyuna göre değişebilir.",
   "diagram-help": "Bir konsol düğmesi seçin, sonra atanacak Xbox düğmesini seçin. Çubuklar emülatör ayarlarını korur.",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "Üst ayarı kullan",
   "launch-help": "Kaydedilen ayarlar Aurora veya Sunshine istemcisinden sonraki başlatmada uygulanır.",
   "mapping-unavailable": "Bu emülatörde düğme eşleme henüz kullanılamıyor.",
-  "menu-shortcut": "Emülatör menüsünü aç",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "Dolphin burada kontrolcüyle kullanılabilen bir emülatör menüsü sunmaz. Çıkış kısayolu çalışmaya devam eder.",
   "message-size": "Mesaj boyutu",
   "message-size-help": "PCSX2 ve RetroArch için geçerlidir. Varsayılan TV boyutu %200’dür.",
@@ -41,11 +42,11 @@
   "scope": "Oyuna özel ayar",
   "share-help": "Share için Sunshine'ın Xbox Series sanal kontrolcüsü ve düğmeyi ileten bir istemci gerekir. Apple TV, Xbox/Guide ve View + Menu düğmelerini ayırabilir.",
   "shortcut-conflict": "Menü ve çıkış için farklı kısayollar seçin.",
-  "shortcut-help": "Menü her basışta bir kez açılır. Çıkmak için iki saniye basılı tutun. Kısayollar fiziksel Xbox düğmelerini kullanır ve platform ile oyun bazında devralınır.",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "Kontrolcü kısayolları",
   "stale": "Başlatıcı durum bildirmeyi durdurdu. Ayarları değiştirmeden önce Sunshine’ı kontrol edin.",
   "title": "RomM + Sunshine",
   "unassigned": "Atanmamış",
   "unavailable": "Entegrasyon verileri yüklenemedi.",
-  "widescreen-help": "16:9’u yalnızca yerel destek veya uyumlu yama olan oyunlarda açın. Diğer oyunlarda esneme veya görüntü hataları olabilir."
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }

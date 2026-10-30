@@ -11,10 +11,11 @@
   "controller": "Xbox 컨트롤러",
   "controller-help": "각 콘솔 버튼에 Xbox 버튼을 지정하세요. 확인과 취소 버튼은 게임마다 다를 수 있습니다.",
   "diagram-help": "콘솔 버튼을 선택한 후 할당할 Xbox 버튼을 선택하세요. 스틱 이동은 에뮬레이터 설정을 유지합니다.",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "상위 설정 사용",
   "launch-help": "저장한 설정은 Aurora 또는 Sunshine 클라이언트에서 다음에 실행할 때 적용됩니다.",
   "mapping-unavailable": "이 에뮬레이터는 아직 버튼 재설정을 지원하지 않습니다.",
-  "menu-shortcut": "에뮬레이터 메뉴 열기",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "여기서는 Dolphin 메뉴를 컨트롤러로 조작할 수 없습니다. 종료 단축키는 계속 작동합니다.",
   "message-size": "메시지 크기",
   "message-size-help": "PCSX2와 RetroArch에 적용됩니다. TV 기본 크기는 200%입니다.",
@@ -41,11 +42,11 @@
   "scope": "게임별 설정",
   "share-help": "Share를 사용하려면 Sunshine의 Xbox Series 가상 컨트롤러와 버튼을 전달하는 클라이언트가 필요합니다. Apple TV에서 Xbox/Guide 및 View + Menu를 사용할 수 있습니다.",
   "shortcut-conflict": "메뉴와 종료에 서로 다른 단축키를 선택하세요.",
-  "shortcut-help": "메뉴는 누를 때마다 한 번 열립니다. 종료하려면 2초 동안 누르세요. 실제 Xbox 버튼을 사용하며 플랫폼 및 게임별 설정을 상속합니다.",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "컨트롤러 단축키",
   "stale": "실행기의 응답이 끊겼습니다. 설정을 변경하기 전에 Sunshine을 확인하세요.",
   "title": "RomM + Sunshine",
   "unassigned": "할당되지 않음",
   "unavailable": "연동 데이터를 불러올 수 없습니다.",
-  "widescreen-help": "기본 와이드스크린이나 호환 패치가 있는 게임에만 16:9를 사용하세요. 다른 게임에서는 화면이 늘어나거나 오류가 생길 수 있습니다."
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }

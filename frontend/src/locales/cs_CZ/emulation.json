@@ -11,10 +11,11 @@
   "controller": "Ovladač Xbox",
   "controller-help": "Přiřaďte tlačítka Xbox tlačítkům konzole. Potvrzení a zrušení se mohou mezi hrami lišit.",
   "diagram-help": "Vyberte tlačítko konzole a potom tlačítko Xbox, které mu přiřadíte. Páčky zachovají nastavení emulátoru.",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "Použít zděděné nastavení",
   "launch-help": "Uložené nastavení se použije při příštím spuštění přes Aurora nebo klienta Sunshine.",
   "mapping-unavailable": "Tento emulátor zatím nepodporuje přemapování tlačítek.",
-  "menu-shortcut": "Otevřít nabídku emulátoru",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "Dolphin zde nemá nabídku ovladatelnou ovladačem. Zkratka pro ukončení funguje dál.",
   "message-size": "Velikost zpráv",
   "message-size-help": "Platí pro PCSX2 a RetroArch. Výchozí velikost pro televizi je 200 %.",
@@ -41,11 +42,11 @@
   "scope": "Nastavení pro hru",
   "share-help": "Share vyžaduje virtuální ovladač Xbox Series v Sunshine a klienta, který tlačítko předává. Apple TV může zachytit Xbox/Guide a View + Menu.",
   "shortcut-conflict": "Pro nabídku a ukončení vyberte různé zkratky.",
-  "shortcut-help": "Nabídka se otevře jednou na stisk. Ukončení vyžaduje podržení dvě sekundy. Zkratky používají fyzická tlačítka Xbox a dědí se pro platformu a hru.",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "Zkratky ovladače",
   "stale": "Spouštěč přestal hlásit stav. Před změnou nastavení zkontrolujte Sunshine.",
   "title": "RomM + Sunshine",
   "unassigned": "Nepřiřazeno",
   "unavailable": "Data integrace se nepodařilo načíst.",
-  "widescreen-help": "16:9 zapněte pouze pro hry s nativní podporou nebo kompatibilní opravou. Jiné hry mohou být roztažené nebo mít grafické chyby."
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }
