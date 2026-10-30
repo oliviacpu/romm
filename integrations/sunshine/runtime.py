@@ -216,8 +216,9 @@ def menu_request(action, payload):
         if scope not in ("game", "platform") or (scope == "game" and not game_id):
             raise ValueError("Game profile is not in the catalog")
         target = game_id if scope == "game" else None
+        document = None
         if action == "menu-save":
-            profile_runtime.profiles.save_profile(
+            document = profile_runtime.profiles.save_profile(
                 profile_runtime.ROOT,
                 system,
                 target,
@@ -241,7 +242,7 @@ def menu_request(action, payload):
             "title": rom.stem,
             "native_menu": shortcuts.menu_key(system) is not None,
             "messages": messages,
-            **menu_model.settings(profile_runtime.ROOT, system, target),
+            **menu_model.settings(profile_runtime.ROOT, system, target, document),
         }
 
 

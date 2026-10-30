@@ -16,6 +16,7 @@ from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 class SessionMenu:
     def __init__(self, pid):
         self.pid = pid
+        self.finished = False
         self.scope = "game"
         self.page = "home"
         self.selected = 0
@@ -49,7 +50,8 @@ class SessionMenu:
         Gtk.StyleContext.add_provider_for_screen(
             Gdk.Screen.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
-        GLib.io_add_watch(sys.stdin, GLib.IO_IN | GLib.IO_HUP, self.input)
+        self.input_reader = menu_model.InputReader(sys.stdin.fileno())
+        GLib.io_add_watch(self.input_reader.fd, GLib.IO_IN | GLib.IO_HUP, self.input)
         self.render()
         self.window.fullscreen()
         self.window.show_all()
@@ -276,6 +278,7 @@ class SessionMenu:
 
     def finish(self, action):
         self.request("finish", choice=action)
+        self.finished = True
         Gtk.main_quit()
         return True
 
@@ -309,13 +312,14 @@ class SessionMenu:
             return True
         return False
 
-    def input(self, channel, condition):
-        if condition & GLib.IO_HUP:
+    def input(self, _channel, _condition):
+        for line in self.input_reader.read_lines():
+            if self.finished:
+                break
+            self.perform(lambda: self.action(json.loads(line)))
+        if self.input_reader.closed or self.finished:
             Gtk.main_quit()
             return False
-        line = channel.readline()
-        if line:
-            self.perform(lambda: self.action(json.loads(line)))
         return True
 
 

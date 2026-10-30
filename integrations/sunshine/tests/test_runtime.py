@@ -1,6 +1,7 @@
 import importlib.util
 import io
 import json
+import os
 import sys
 import tempfile
 import tomllib
@@ -440,6 +441,36 @@ class SessionMenuTests(unittest.TestCase):
             result = menu_model.settings(root, "gc", "a" * 20)
             self.assertEqual(result["effective"]["resolution"], "720p")
             self.assertEqual(result["effective"]["aspect"], "16:9")
+
+    def test_save_response_keeps_its_revision_despite_an_intervening_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            saved = profiles.save_profile(root, "gc", None, {"resolution": "720p"}, 0)
+            profiles.save_profile(root, "gc", None, {"resolution": "1080p"}, 1)
+            result = menu_model.settings(root, "gc", None, saved)
+            self.assertEqual(result["revision"], 1)
+            self.assertEqual(result["saved"]["resolution"], "720p")
+            with self.assertRaises(FileExistsError):
+                profiles.save_profile(
+                    root, "gc", None, {"aspect": "16:9"}, result["revision"]
+                )
+
+    def test_input_drains_multiple_lines_and_retains_partial_actions(self):
+        read_fd, write_fd = os.pipe()
+        try:
+            reader = menu_model.InputReader(read_fd)
+            os.write(write_fd, b'"down"\n"confirm"\n"ba')
+            self.assertEqual(reader.read_lines(), [b'"down"', b'"confirm"'])
+            self.assertEqual(reader.read_lines(), [])
+            os.write(write_fd, b'ck"\n')
+            os.close(write_fd)
+            write_fd = None
+            self.assertEqual(reader.read_lines(), [b'"back"'])
+            self.assertTrue(reader.closed)
+        finally:
+            os.close(read_fd)
+            if write_fd is not None:
+                os.close(write_fd)
 
     def fixture(self):
         child = Mock(pid=41)
