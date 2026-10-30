@@ -15,9 +15,11 @@ from endpoints.responses.emulation import (
 )
 from handler.auth.constants import Scope
 from handler.emulation.profiles import (
+    ACTION_BUTTONS,
     BUTTONS,
     ID_PATTERN,
     PLATFORMS,
+    SHORTCUTS,
     effective_profile,
     read_json,
     read_sessions,
@@ -104,6 +106,8 @@ def get_emulation(request: Request) -> EmulationStatus:
             ],
             games=[EmulationGame(**game) for game in catalog["games"]],
             buttons=BUTTONS,
+            action_buttons=ACTION_BUTTONS,
+            shortcuts=SHORTCUTS,
             sessions=read_sessions(root),
         )
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:

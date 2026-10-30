@@ -60,6 +60,14 @@ CONTINUATION = re.compile(
 )
 SOURCES = {"ps2": "PCSX2", "gc": "Dolphin", "dreamcast": "Flycast", "xbox": "xemu"}
 active_session_id = None
+# Measured against Sunshine's pinned Linux uinput Xbox Series descriptor.
+SERIES_GUID = "05004d885e040000130b000000050000"
+SERIES_MAPPING = (
+    SERIES_GUID + ",Xbox Series X Controller,a:b0,b:b1,x:b3,y:b4,back:b10,guide:b12,"
+    "start:b11,leftstick:b13,rightstick:b14,leftshoulder:b6,rightshoulder:b7,"
+    "dpup:h0.1,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,misc1:b15,"
+    "leftx:a0,lefty:a1,rightx:a3,righty:a4,lefttrigger:a2,righttrigger:a5,platform:Linux,"
+)
 SDL_KEYS = {
     "lt": "lefttrigger",
     "rt": "righttrigger",
@@ -153,6 +161,13 @@ def game_identity(system, rom):
     )
 
 
+def series_controller():
+    path = CONFIG / "sunshine/sunshine.conf"
+    return path.is_file() and any(
+        line.strip() == "gamepad = xseries" for line in path.read_text().splitlines()
+    )
+
+
 def controller_environment(profile):
     bindings = profile["bindings"]
     if bindings == profiles.COMMON:
@@ -163,6 +178,8 @@ def controller_environment(profile):
         for line in database.read_text().splitlines()
         if ",Xbox 360 via Sunshine," in line and "platform:Linux" in line
     ]
+    if series_controller():
+        candidates.append(SERIES_MAPPING)
     if not candidates:
         raise ValueError(
             "Sunshine controller baseline is missing; remapping cannot be applied safely"
@@ -225,12 +242,7 @@ def prepare(system, rom):
                         profile["aspect"] in ("auto", "16:9")
                     ).lower()
                 },
-                "Hotkeys": {
-                    "OpenPauseMenu": [
-                        "Keyboard/Escape",
-                        "SDL-0/LeftStick & SDL-0/RightStick",
-                    ]
-                },
+                "Hotkeys": {"OpenPauseMenu": "Keyboard/Escape"},
             },
         )
     elif system == "gc":
@@ -259,6 +271,12 @@ def prepare(system, rom):
                     for key, target in keys.items()
                 }
                 | {
+                    "Device": "SDL/0/"
+                    + (
+                        "Xbox Series X Controller"
+                        if series_controller()
+                        else "Xbox 360 Controller"
+                    ),
                     "Triggers/L-Analog": "`" + DOLPHIN_BUTTONS[bindings["lt"]] + "`",
                     "Triggers/R-Analog": "`" + DOLPHIN_BUTTONS[bindings["rt"]] + "`",
                 }

@@ -7,5 +7,7 @@ export type EmulationProfile = {
     aspect?: ('original' | '16:9' | 'auto' | null);
     osd_scale?: (number | null);
     bindings?: Record<string, string>;
+    menu_shortcut?: (string | null);
+    quit_shortcut?: (string | null);
 };
 

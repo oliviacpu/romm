@@ -42,6 +42,8 @@ function listing(): EmulationStatus {
     ],
     games: [{ id: "a".repeat(20), system: "ps2", title: "SSX Tricky" }],
     buttons: { a: "A", b: "B", x: "X" },
+    action_buttons: { share: "Share", l3: "Left stick click", menu: "Menu" },
+    shortcuts: { share: ["share"], l3_menu: ["l3", "menu"], none: [] },
     sessions: [
       {
         id: "session-one",
@@ -68,6 +70,8 @@ function settings(): EmulationProfileResponse {
     aspect: "original" as const,
     osd_scale: 200,
     bindings: { a: "a", b: "b", x: "x" },
+    menu_shortcut: "share",
+    quit_shortcut: "l3_menu",
   };
   return {
     revision: 2,
@@ -100,7 +104,7 @@ describe("Sunshine emulation profiles", () => {
     expect(wrapper.text()).toContain(
       "Blending accuracy is below the recommended level.",
     );
-    expect(wrapper.text()).toContain("emulation.quit-help");
+    expect(wrapper.text()).toContain("emulation.shortcuts");
     wrapper.unmount();
   });
 

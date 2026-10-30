@@ -10,6 +10,7 @@ import type {
 } from "@/__generated__";
 import emulationApi from "@/services/api/emulation";
 import { formatTimestamp } from "@/utils";
+import ControllerAssignments from "@/v2/components/Settings/ControllerAssignments.vue";
 import SettingsSection from "@/v2/components/Settings/SettingsSection.vue";
 import { useFetchState } from "@/v2/composables/useFetchState";
 import { useIsAlive } from "@/v2/composables/useIsAlive";
@@ -61,6 +62,37 @@ const buttons = computed(() =>
   })),
 );
 const bindings = computed(() => Object.entries(platform.value?.buttons ?? {}));
+const xboxDiagramLabels = computed(() => ({
+  ...status.state.value.buttons,
+  ...Object.fromEntries(
+    Object.entries(status.state.value.action_buttons ?? {}).filter(([key]) =>
+      ["share", "guide"].includes(key),
+    ),
+  ),
+}));
+const xboxAssignments = computed(() =>
+  Object.fromEntries(
+    bindings.value.map(([key, label]) => [binding(key), label]),
+  ),
+);
+const consoleAssignments = computed(() => {
+  const names: Record<string, string> = {
+    view: "View",
+    menu: "Menu",
+    l3: "L3",
+    r3: "R3",
+    up: "↑",
+    down: "↓",
+    left: "←",
+    right: "→",
+  };
+  return Object.fromEntries(
+    bindings.value.map(([key]) => {
+      const button = binding(key);
+      return [key, names[button] ?? button.toUpperCase()];
+    }),
+  );
+});
 const resolutions = computed(() =>
   (platform.value?.resolutions ?? []).map((id) => ({
     id,
@@ -68,6 +100,13 @@ const resolutions = computed(() =>
   })),
 );
 const busy = computed(() => profile.isLoading.value || saving.value);
+const menuAvailable = computed(() => system.value !== "gc");
+const shortcutsConflict = computed(
+  () =>
+    (draft.value.menu_shortcut ??
+      profile.state.value?.inherited.menu_shortcut) ===
+    (draft.value.quit_shortcut ?? profile.state.value?.inherited.quit_shortcut),
+);
 const sessions = computed(() =>
   [...(status.state.value.sessions ?? [])].reverse(),
 );
@@ -108,6 +147,32 @@ function buttonChoices(key: string) {
   return buttons.value.filter(
     (button) => ["lt", "rt"].includes(button.id) === trigger,
   );
+}
+
+function shortcutLabel(id: string | undefined | null): string {
+  const chord = status.state.value.shortcuts?.[id ?? ""] ?? [];
+  return chord.length
+    ? chord
+        .map((button) =>
+          ["share", "guide", "view", "menu", "l3", "r3"].includes(button)
+            ? t(`emulation.button-${button}`)
+            : (status.state.value.action_buttons?.[button] ?? button),
+        )
+        .join(" + ")
+    : t("emulation.no-shortcut");
+}
+
+function shortcutChoices(action: "menu" | "quit") {
+  const inherited = profile.state.value?.inherited[`${action}_shortcut`];
+  return [
+    {
+      id: null,
+      label: `${shortcutLabel(inherited)} · ${t("emulation.inherit")}`,
+    },
+    ...Object.keys(status.state.value.shortcuts ?? {})
+      .filter((id) => action !== "quit" || id !== "none")
+      .map((id) => ({ id, label: shortcutLabel(id) })),
+  ];
 }
 
 function inheritedLabel(field: "resolution" | "aspect" | "osd_scale"): string {
@@ -157,7 +222,7 @@ function inherit(): void {
 
 async function save(): Promise<void> {
   const current = profile.state.value;
-  if (!current || busy.value) return;
+  if (!current || busy.value || shortcutsConflict.value) return;
   const target = system.value;
   const game = gameId.value;
   const payload = {
@@ -288,6 +353,21 @@ function timestamp(value: number): string {
           </div>
           <h3>{{ t("emulation.controller") }}</h3>
           <p>{{ t("emulation.controller-help") }}</p>
+          <p>{{ t("emulation.diagram-help") }}</p>
+          <div v-if="platform" class="emulation-diagrams">
+            <ControllerAssignments
+              system="xbox-series"
+              title="Xbox Series X|S"
+              :labels="xboxDiagramLabels"
+              :assignments="xboxAssignments"
+            />
+            <ControllerAssignments
+              :system="system"
+              :title="platform.label"
+              :labels="platform.buttons"
+              :assignments="consoleAssignments"
+            />
+          </div>
           <RAlert v-if="!platform?.mapping" type="info">{{
             t("emulation.mapping-unavailable")
           }}</RAlert>
@@ -308,11 +388,40 @@ function timestamp(value: number): string {
               @update:model-value="setBinding(key, $event)"
             />
           </div>
-          <p>{{ t("emulation.quit-help") }}</p>
+          <h3>{{ t("emulation.shortcuts") }}</h3>
+          <p>{{ t("emulation.shortcut-help") }}</p>
+          <div class="emulation-grid">
+            <RSelect
+              v-model="draft.menu_shortcut"
+              prefix-label="stacked"
+              :items="shortcutChoices('menu')"
+              item-title="label"
+              item-value="id"
+              :label="t('emulation.menu-shortcut')"
+              :disabled="saving || !menuAvailable"
+            />
+            <RSelect
+              v-model="draft.quit_shortcut"
+              prefix-label="stacked"
+              :items="shortcutChoices('quit')"
+              item-title="label"
+              item-value="id"
+              :label="t('emulation.quit-shortcut')"
+              :disabled="saving"
+            />
+          </div>
+          <p v-if="!menuAvailable">{{ t("emulation.menu-unavailable") }}</p>
+          <p>{{ t("emulation.share-help") }}</p>
+          <RAlert v-if="shortcutsConflict" type="warning">{{
+            t("emulation.shortcut-conflict")
+          }}</RAlert>
           <div class="emulation-actions">
-            <RBtn type="submit" :loading="saving" :disabled="stale">{{
-              t("emulation.save")
-            }}</RBtn>
+            <RBtn
+              type="submit"
+              :loading="saving"
+              :disabled="stale || shortcutsConflict"
+              >{{ t("emulation.save") }}</RBtn
+            >
             <RBtn variant="text" :disabled="saving" @click="inherit">{{
               t("emulation.reset")
             }}</RBtn>
@@ -359,6 +468,12 @@ function timestamp(value: number): string {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
   gap: var(--r-space-4);
+}
+.emulation-diagrams {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--r-space-4);
+  margin-block: var(--r-space-4);
 }
 .emulation-actions {
   display: flex;

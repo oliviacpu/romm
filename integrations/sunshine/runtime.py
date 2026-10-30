@@ -17,6 +17,7 @@ import time
 import catalog
 import firmware_handoff
 import profile_runtime
+import shortcuts
 from systems import SYSTEMS, argv
 from systems import ready as system_ready
 
@@ -32,6 +33,7 @@ disconnected_at = None
 transport_lost_at = None
 last_event = None
 current_game = None
+current_profile = None
 ready = False
 fatal = None
 soak_until = None
@@ -115,11 +117,12 @@ def close_process(p):
 
 
 def close_game():
-    global game, current_game
+    global game, current_game, current_profile
     with lock:
         close_process(game)
         game = None
         current_game = None
+        current_profile = None
 
 
 def cleanup():
@@ -132,7 +135,7 @@ def cleanup():
 
 
 def launch_game(args):
-    global game, current_game, last_event, disconnected_at
+    global game, current_game, current_profile, last_event, disconnected_at
     with lock:
         if time.time() < backup_until:
             raise RuntimeError("Save backup in progress; try again shortly")
@@ -181,6 +184,7 @@ def launch_game(args):
             "file": str(rom.relative_to(root)),
             "started": time.time(),
         }
+        current_profile = profile
         last_event = "Game started"
         if not connected and disconnected_at is None:
             disconnected_at = time.time()
@@ -244,7 +248,22 @@ def controller_watch():
 
     devices = {}
     pressed = {}
-    since = {}
+    tracker = shortcuts.HeldShortcuts()
+    session = None
+    codes = {
+        evdev.ecodes.BTN_SOUTH: "a",
+        evdev.ecodes.BTN_EAST: "b",
+        evdev.ecodes.BTN_WEST: "x",
+        evdev.ecodes.BTN_NORTH: "y",
+        evdev.ecodes.BTN_TL: "lb",
+        evdev.ecodes.BTN_TR: "rb",
+        evdev.ecodes.BTN_SELECT: "view",
+        evdev.ecodes.BTN_START: "menu",
+        evdev.ecodes.BTN_THUMBL: "l3",
+        evdev.ecodes.BTN_THUMBR: "r3",
+        evdev.ecodes.BTN_MODE: "guide",
+        evdev.ecodes.KEY_RECORD: "share",
+    }
     next_scan = 0
     while not stopping:
         if time.monotonic() >= next_scan:
@@ -267,31 +286,64 @@ def controller_watch():
         if not devices:
             time.sleep(1)
             continue
+        with lock:
+            active = game if game and game.poll() is None else None
+            if active != session:
+                tracker = shortcuts.HeldShortcuts()
+                session = active
+                pressed = {path: set() for path in devices}
         readable, _, _ = select.select(list(devices.values()), [], [], 0.1)
         for dev in readable:
             path = dev.path
             try:
                 for event in dev.read():
                     if event.type == evdev.ecodes.EV_KEY:
-                        if event.value:
+                        if event.value == 1:
                             pressed[path].add(event.code)
-                        else:
+                        elif event.value == 0:
                             pressed[path].discard(event.code)
             except OSError:
                 devices.pop(path).close()
                 pressed.pop(path, None)
-                since.pop(path, None)
-        for path, buttons in pressed.items():
-            if {evdev.ecodes.BTN_SELECT, evdev.ecodes.BTN_START} <= buttons or {
-                evdev.ecodes.BTN_THUMBL,
-                evdev.ecodes.BTN_START,
-            } <= buttons:
-                since.setdefault(path, time.monotonic())
-                if time.monotonic() - since[path] >= 2:
-                    close_game()
-                    since[path] = time.monotonic() + 3600
-            else:
-                since.pop(path, None)
+                tracker.forget(path)
+        with lock:
+            active = game if game and game.poll() is None else None
+            if active is None or active != session or current_profile is None:
+                continue
+            for path, buttons in pressed.items():
+                physical = {codes[code] for code in buttons if code in codes}
+                for action in tracker.update(
+                    path, physical, current_profile, time.monotonic()
+                ):
+                    if action == "quit":
+                        close_game()
+                        break
+                    key = shortcuts.menu_key(current_game["system"])
+                    if key:
+                        try:
+                            focused = subprocess.run(
+                                ["xdotool", "getactivewindow", "getwindowpid"],
+                                capture_output=True,
+                                text=True,
+                                timeout=3,
+                                check=True,
+                            ).stdout.strip()
+                            if focused == str(active.pid):
+                                subprocess.run(
+                                    ["xdotool", "key", "--clearmodifiers", key],
+                                    timeout=3,
+                                    check=True,
+                                )
+                        except (OSError, subprocess.SubprocessError) as error:
+                            if profile_runtime.active_session_id:
+                                profile_runtime.append_message(
+                                    profile_runtime.active_session_id,
+                                    "Warning: emulator menu shortcut failed: "
+                                    + str(error),
+                                    source="Launcher",
+                                )
+                if game is None:
+                    break
 
 
 def sunshine_log(pipe):
