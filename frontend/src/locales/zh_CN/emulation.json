@@ -7,9 +7,10 @@
   "button-r3": "按下右摇杆",
   "button-share": "Share（从托盘向外的箭头）",
   "button-view": "View（重叠方框）",
+  "console-function": "这是主机或模拟器功能，并非此控制器上的按键。",
   "controller": "Xbox 手柄",
   "controller-help": "为每个主机按键指定 Xbox 按键。确认和取消按键可能因游戏而异。",
-  "diagram-help": "示意图显示已配置的按键。摇杆移动保留模拟器默认设置。",
+  "diagram-help": "选择主机按键，再选择要分配的Xbox按键。摇杆移动保留模拟器设置。",
   "inherit": "使用继承设置",
   "launch-help": "保存的设置将在下次通过 Aurora 或 Sunshine 客户端启动游戏时应用。",
   "mapping-unavailable": "此模拟器暂不支持按键重映射。",
@@ -29,6 +30,7 @@
   "platform-default": "平台默认设置",
   "quit-help": "退出：按住左摇杆按键和 Menu 两秒。此快捷键独立于游戏按键映射。",
   "quit-shortcut": "退出游戏（长按两秒）",
+  "rear-control": "顶部或背面按键，显示在正面轮廓上方。",
   "refresh": "@:settings.streaming-refresh",
   "reset": "清除自定义设置",
   "resolution": "渲染分辨率",
@@ -43,6 +45,7 @@
   "shortcuts": "控制器快捷键",
   "stale": "启动器已停止报告状态。更改设置前请检查 Sunshine。",
   "title": "RomM + Sunshine",
+  "unassigned": "未分配",
   "unavailable": "无法加载集成数据。",
   "widescreen-help": "仅对原生支持宽屏或有兼容补丁的游戏启用 16:9。其他游戏可能被拉伸或出现画面问题。"
 }

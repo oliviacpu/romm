@@ -7,9 +7,10 @@
   "button-r3": "右スティック押し込み",
   "button-share": "Share（トレイから出る矢印）",
   "button-view": "View（重なった四角）",
+  "console-function": "コントローラーのボタンではなく、本体またはエミュレーターの機能です。",
   "controller": "Xbox コントローラー",
   "controller-help": "各コンソールボタンに Xbox のボタンを割り当てます。決定とキャンセルはゲームによって異なる場合があります。",
-  "diagram-help": "図は設定済みのボタンを示します。スティックの移動にはエミュレーターの既定設定を使います。",
+  "diagram-help": "本体側のボタンを選び、割り当てるXboxボタンを選択します。スティックの移動はエミュレーターの設定を使います。",
   "inherit": "継承した設定を使用",
   "launch-help": "保存した設定は、Aurora または Sunshine クライアントからの次回起動時に適用されます。",
   "mapping-unavailable": "このエミュレーターではボタンの割り当て変更にまだ対応していません。",
@@ -29,6 +30,7 @@
   "platform-default": "プラットフォームの既定値",
   "quit-help": "終了：左スティックを押し込みながら Menu を2秒間長押しします。この操作はゲームの割り当てとは独立しています。",
   "quit-shortcut": "ゲームを終了（2秒長押し）",
+  "rear-control": "上面または背面のボタンです。正面図の上に表示しています。",
   "refresh": "@:settings.streaming-refresh",
   "reset": "個別設定を削除",
   "resolution": "描画解像度",
@@ -43,6 +45,7 @@
   "shortcuts": "コントローラーのショートカット",
   "stale": "ランチャーからの応答がありません。設定変更前に Sunshine を確認してください。",
   "title": "RomM + Sunshine",
+  "unassigned": "未割り当て",
   "unavailable": "連携データを読み込めませんでした。",
   "widescreen-help": "16:9 は対応ゲームまたは互換パッチがある場合のみ有効にしてください。他のゲームでは引き伸ばしや表示不具合が発生する場合があります。"
 }

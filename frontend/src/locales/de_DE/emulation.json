@@ -7,9 +7,10 @@
   "button-r3": "Rechten Stick drücken",
   "button-share": "Share (Pfeil aus einer Ablage)",
   "button-view": "View (überlappende Quadrate)",
+  "console-function": "Konsolen- oder Emulatorfunktion, keine Taste an diesem Controller.",
   "controller": "Xbox-Controller",
   "controller-help": "Xbox-Tasten den Konsolentasten zuordnen. Bestätigen und Zurück können je nach Spiel abweichen.",
-  "diagram-help": "Die Skizzen zeigen konfigurierte Tasten. Stickbewegungen behalten die Vorgaben des Emulators.",
+  "diagram-help": "Wähle zuerst eine Konsolentaste und dann die zugehörige Xbox-Taste. Stickbewegungen behalten die Emulatorvorgaben.",
   "inherit": "Übergeordnete Einstellung verwenden",
   "launch-help": "Gespeicherte Einstellungen gelten beim nächsten Start über Aurora oder einen Sunshine-Client.",
   "mapping-unavailable": "Für diesen Emulator ist noch keine Tastenbelegung verfügbar.",
@@ -29,6 +30,7 @@
   "platform-default": "Plattformvorgabe",
   "quit-help": "Beenden: linken Stick drücken und Menü zwei Sekunden halten. Dieser Kurzbefehl ist unabhängig von der Spielbelegung.",
   "quit-shortcut": "Spiel beenden (zwei Sekunden halten)",
+  "rear-control": "Schultertaste oder rückseitige Taste, über der Vorderansicht dargestellt.",
   "refresh": "@:settings.streaming-refresh",
   "reset": "Anpassungen löschen",
   "resolution": "Renderauflösung",
@@ -43,6 +45,7 @@
   "shortcuts": "Controller-Kurzbefehle",
   "stale": "Der Starter meldet sich nicht mehr. Sunshine vor Änderungen prüfen.",
   "title": "RomM + Sunshine",
+  "unassigned": "Nicht zugewiesen",
   "unavailable": "Integrationsdaten konnten nicht geladen werden.",
   "widescreen-help": "16:9 nur bei Spielen mit nativer Breitbildunterstützung oder passendem Patch aktivieren. Sonst sind Verzerrungen oder Grafikfehler möglich."
 }

@@ -29,6 +29,7 @@ const gameId = computed<string | null>({
   },
 });
 const saving = ref(false);
+const selectedConsoleButton = ref("a");
 const draft = ref<EmulationProfile>({ bindings: {} });
 const status = useFetchState(
   () => emulationApi.status().then(({ data }) => data),
@@ -71,9 +72,22 @@ const xboxDiagramLabels = computed(() => ({
   ),
 }));
 const xboxAssignments = computed(() =>
-  Object.fromEntries(
-    bindings.value.map(([key, label]) => [binding(key), label]),
-  ),
+  Object.fromEntries([
+    ...bindings.value.map(([key, label]) => [binding(key), label]),
+    ...["share", "guide"].map((key) => [
+      key,
+      ["menu", "quit"]
+        .filter((action) => {
+          const field = `${action}_shortcut` as
+            "menu_shortcut" | "quit_shortcut";
+          const id =
+            draft.value[field] ?? profile.state.value?.inherited[field];
+          return (status.state.value.shortcuts?.[id ?? ""] ?? []).includes(key);
+        })
+        .map((action) => t(`emulation.${action}-shortcut`))
+        .join(" / "),
+    ]),
+  ]),
 );
 const consoleAssignments = computed(() => {
   const names: Record<string, string> = {
@@ -118,6 +132,7 @@ const stale = computed(
 
 watch(system, () => {
   gameId.value = null;
+  selectedConsoleButton.value = "a";
 });
 watch(
   [system, gameId, () => status.state.value.enabled],
@@ -147,6 +162,16 @@ function buttonChoices(key: string) {
   return buttons.value.filter(
     (button) => ["lt", "rt"].includes(button.id) === trigger,
   );
+}
+
+function assignDiagramButton(key: string): void {
+  if (busy.value || !platform.value?.mapping) return;
+  if (
+    buttonChoices(selectedConsoleButton.value).some(
+      (button) => button.id === key,
+    )
+  )
+    setBinding(selectedConsoleButton.value, key);
 }
 
 function shortcutLabel(id: string | undefined | null): string {
@@ -356,16 +381,26 @@ function timestamp(value: number): string {
           <p>{{ t("emulation.diagram-help") }}</p>
           <div v-if="platform" class="emulation-diagrams">
             <ControllerAssignments
-              system="xbox-series"
-              title="Xbox Series X|S"
-              :labels="xboxDiagramLabels"
-              :assignments="xboxAssignments"
-            />
-            <ControllerAssignments
               :system="system"
               :title="platform.label"
               :labels="platform.buttons"
               :assignments="consoleAssignments"
+              :selected="selectedConsoleButton"
+              :selectable="Object.keys(platform.buttons)"
+              :disabled="busy || !platform.mapping"
+              @select="selectedConsoleButton = $event"
+            />
+            <ControllerAssignments
+              system="xbox-series"
+              title="Xbox Series X|S"
+              :labels="xboxDiagramLabels"
+              :assignments="xboxAssignments"
+              :selected="binding(selectedConsoleButton)"
+              :selectable="
+                buttonChoices(selectedConsoleButton).map((button) => button.id)
+              "
+              :disabled="busy || !platform.mapping"
+              @select="assignDiagramButton"
             />
           </div>
           <RAlert v-if="!platform?.mapping" type="info">{{

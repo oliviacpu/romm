@@ -7,9 +7,10 @@
   "button-r3": "오른쪽 스틱 누르기",
   "button-share": "Share (트레이에서 나오는 화살표)",
   "button-view": "View (겹친 사각형)",
+  "console-function": "이 컨트롤러의 버튼이 아닌 콘솔 또는 에뮬레이터 기능입니다.",
   "controller": "Xbox 컨트롤러",
   "controller-help": "각 콘솔 버튼에 Xbox 버튼을 지정하세요. 확인과 취소 버튼은 게임마다 다를 수 있습니다.",
-  "diagram-help": "그림은 설정된 버튼을 보여 줍니다. 스틱 움직임은 에뮬레이터 기본 설정을 유지합니다.",
+  "diagram-help": "콘솔 버튼을 선택한 후 할당할 Xbox 버튼을 선택하세요. 스틱 이동은 에뮬레이터 설정을 유지합니다.",
   "inherit": "상위 설정 사용",
   "launch-help": "저장한 설정은 Aurora 또는 Sunshine 클라이언트에서 다음에 실행할 때 적용됩니다.",
   "mapping-unavailable": "이 에뮬레이터는 아직 버튼 재설정을 지원하지 않습니다.",
@@ -29,6 +30,7 @@
   "platform-default": "플랫폼 기본값",
   "quit-help": "종료: 왼쪽 스틱을 누른 채 Menu를 2초 동안 누르세요. 이 단축키는 게임 버튼 설정과 별개입니다.",
   "quit-shortcut": "게임 종료 (2초 누르기)",
+  "rear-control": "앞면 그림 위에 표시된 상단 또는 후면 버튼입니다.",
   "refresh": "@:settings.streaming-refresh",
   "reset": "개별 설정 지우기",
   "resolution": "렌더링 해상도",
@@ -43,6 +45,7 @@
   "shortcuts": "컨트롤러 단축키",
   "stale": "실행기의 응답이 끊겼습니다. 설정을 변경하기 전에 Sunshine을 확인하세요.",
   "title": "RomM + Sunshine",
+  "unassigned": "할당되지 않음",
   "unavailable": "연동 데이터를 불러올 수 없습니다.",
   "widescreen-help": "기본 와이드스크린이나 호환 패치가 있는 게임에만 16:9를 사용하세요. 다른 게임에서는 화면이 늘어나거나 오류가 생길 수 있습니다."
 }

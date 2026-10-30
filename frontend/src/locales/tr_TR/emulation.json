@@ -7,9 +7,10 @@
   "button-r3": "Sağ çubuğa basma",
   "button-share": "Share (tepsiden çıkan ok)",
   "button-view": "View (üst üste kareler)",
+  "console-function": "Bu kontrolcüdeki bir düğme değil, konsol veya emülatör işlevidir.",
   "controller": "Xbox kontrolcüsü",
   "controller-help": "Her konsol düğmesine bir Xbox düğmesi atayın. Onay ve iptal düğmeleri oyuna göre değişebilir.",
-  "diagram-help": "Çizimler yapılandırılmış düğmeleri gösterir. Çubuk hareketleri emülatör varsayılanlarını korur.",
+  "diagram-help": "Bir konsol düğmesi seçin, sonra atanacak Xbox düğmesini seçin. Çubuklar emülatör ayarlarını korur.",
   "inherit": "Üst ayarı kullan",
   "launch-help": "Kaydedilen ayarlar Aurora veya Sunshine istemcisinden sonraki başlatmada uygulanır.",
   "mapping-unavailable": "Bu emülatörde düğme eşleme henüz kullanılamıyor.",
@@ -29,6 +30,7 @@
   "platform-default": "Platform varsayılanı",
   "quit-help": "Çıkış: sol çubuğa basılı tutarken Menu düğmesini iki saniye basılı tutun. Bu kısayol oyun eşlemelerinden bağımsızdır.",
   "quit-shortcut": "Oyundan çık (iki saniye basılı tut)",
+  "rear-control": "Ön görünümün üzerinde gösterilen üst veya arka kontrol.",
   "refresh": "@:settings.streaming-refresh",
   "reset": "Özel ayarları temizle",
   "resolution": "İşleme çözünürlüğü",
@@ -43,6 +45,7 @@
   "shortcuts": "Kontrolcü kısayolları",
   "stale": "Başlatıcı durum bildirmeyi durdurdu. Ayarları değiştirmeden önce Sunshine’ı kontrol edin.",
   "title": "RomM + Sunshine",
+  "unassigned": "Atanmamış",
   "unavailable": "Entegrasyon verileri yüklenemedi.",
   "widescreen-help": "16:9’u yalnızca yerel destek veya uyumlu yama olan oyunlarda açın. Diğer oyunlarda esneme veya görüntü hataları olabilir."
 }

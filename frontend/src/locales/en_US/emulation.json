@@ -7,9 +7,10 @@
   "button-r3": "Right stick click",
   "button-share": "Share (arrow out of tray)",
   "button-view": "View (overlapping squares)",
+  "console-function": "Console or emulator function, not a button on this controller.",
   "controller": "Xbox controller",
   "controller-help": "Choose the Xbox button for each console button. Game menus may use different confirm and cancel buttons.",
-  "diagram-help": "Outlines show configured buttons. Stick movement keeps emulator defaults.",
+  "diagram-help": "Select a console button, then an Xbox button to assign it. Stick movement keeps emulator defaults.",
   "inherit": "Use inherited setting",
   "launch-help": "Saved settings apply on the next launch from Aurora or any Sunshine client.",
   "mapping-unavailable": "Button remapping is not available for this emulator yet.",
@@ -29,6 +30,7 @@
   "platform-default": "Platform default",
   "quit-help": "Quit: hold left stick click + Menu for two seconds. This shortcut is separate from game mappings.",
   "quit-shortcut": "Quit game (hold two seconds)",
+  "rear-control": "Shoulder or rear control, shown above the front outline.",
   "refresh": "@:settings.streaming-refresh",
   "reset": "Clear overrides",
   "resolution": "Rendering resolution",
@@ -43,6 +45,7 @@
   "shortcuts": "Controller shortcuts",
   "stale": "The launcher has stopped reporting. Check Sunshine before changing settings.",
   "title": "RomM + Sunshine",
+  "unassigned": "Not assigned",
   "unavailable": "Integration data could not be loaded.",
   "widescreen-help": "Enable 16:9 only for a game with native widescreen or a compatible patch. Other games may stretch or show glitches."
 }
