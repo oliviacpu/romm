@@ -138,6 +138,41 @@ describe("Sunshine emulation profiles", () => {
     wrapper.unmount();
   });
 
+  it("saves a chosen physical menu shortcut", async () => {
+    const wrapper = await mountSection();
+    const menu = wrapper
+      .findAllComponents({ name: "RSelect" })
+      .find((select) => select.props("label") === "emulation.menu-shortcut");
+    menu?.vm.$emit("update:modelValue", "view_y");
+    await flushPromises();
+    wrapper.findComponent(RForm).vm.$emit("submit", new Event("submit"));
+    await flushPromises();
+    expect(save).toHaveBeenCalledWith("ps2", null, {
+      revision: 2,
+      profile: { bindings: {}, menu_shortcut: "view_y" },
+    });
+    wrapper.unmount();
+  });
+
+  it("blocks conflicting shortcuts and allows correction", async () => {
+    const wrapper = await mountSection();
+    const quit = wrapper
+      .findAllComponents({ name: "RSelect" })
+      .find((select) => select.props("label") === "emulation.quit-shortcut");
+    quit?.vm.$emit("update:modelValue", "share");
+    await flushPromises();
+    expect(wrapper.text()).toContain("emulation.shortcut-conflict");
+    wrapper.findComponent(RForm).vm.$emit("submit", new Event("submit"));
+    await flushPromises();
+    expect(save).not.toHaveBeenCalled();
+    quit?.vm.$emit("update:modelValue", "l3_menu");
+    await flushPromises();
+    wrapper.findComponent(RForm).vm.$emit("submit", new Event("submit"));
+    await flushPromises();
+    expect(save).toHaveBeenCalledOnce();
+    wrapper.unmount();
+  });
+
   it("reloads a failed profile request through the refresh action", async () => {
     profile.mockRejectedValueOnce(new Error("offline"));
     const wrapper = await mountSection();

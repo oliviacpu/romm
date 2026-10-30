@@ -243,27 +243,32 @@ class Server(socketserver.ThreadingUnixStreamServer):
     daemon_threads = True
 
 
+def controller_action(action, active):
+    if action == "quit":
+        close_game()
+        return
+    key = shortcuts.menu_key(current_game["system"])
+    if not key:
+        return
+    focused = subprocess.run(
+        ["xdotool", "getactivewindow", "getwindowpid"],
+        capture_output=True,
+        text=True,
+        timeout=3,
+        check=True,
+    ).stdout.strip()
+    if focused == str(active.pid):
+        subprocess.run(
+            ["xdotool", "key", "--clearmodifiers", key], timeout=3, check=True
+        )
+
+
 def controller_watch():
     import evdev
 
     devices = {}
-    pressed = {}
     tracker = shortcuts.HeldShortcuts()
     session = None
-    codes = {
-        evdev.ecodes.BTN_SOUTH: "a",
-        evdev.ecodes.BTN_EAST: "b",
-        evdev.ecodes.BTN_WEST: "x",
-        evdev.ecodes.BTN_NORTH: "y",
-        evdev.ecodes.BTN_TL: "lb",
-        evdev.ecodes.BTN_TR: "rb",
-        evdev.ecodes.BTN_SELECT: "view",
-        evdev.ecodes.BTN_START: "menu",
-        evdev.ecodes.BTN_THUMBL: "l3",
-        evdev.ecodes.BTN_THUMBR: "r3",
-        evdev.ecodes.BTN_MODE: "guide",
-        evdev.ecodes.KEY_RECORD: "share",
-    }
     next_scan = 0
     while not stopping:
         if time.monotonic() >= next_scan:
@@ -287,7 +292,6 @@ def controller_watch():
                         or "xbox" in dev.name.lower()
                     ) and is_gamepad:
                         devices[path] = dev
-                        pressed[path] = set()
                     else:
                         dev.close()
         if not devices:
@@ -298,59 +302,50 @@ def controller_watch():
             if active != session:
                 tracker = shortcuts.HeldShortcuts()
                 session = active
-                pressed = {path: set() for path in devices}
+        pending = []
         readable, _, _ = select.select(list(devices.values()), [], [], 0.1)
         for dev in readable:
             path = dev.path
             try:
-                for event in dev.read():
-                    if event.type == evdev.ecodes.EV_KEY:
-                        if event.value == 1:
-                            pressed[path].add(event.code)
-                        elif event.value == 0:
-                            pressed[path].discard(event.code)
+                events = list(dev.read())
+                with lock:
+                    if session is None or game != session or current_profile is None:
+                        continue
+                    for event in events:
+                        if event.type == evdev.ecodes.EV_KEY:
+                            pending.extend(
+                                tracker.event(
+                                    path,
+                                    event.code,
+                                    event.value,
+                                    current_profile,
+                                    time.monotonic(),
+                                )
+                            )
             except OSError:
                 devices.pop(path).close()
-                pressed.pop(path, None)
                 tracker.forget(path)
         with lock:
             active = game if game and game.poll() is None else None
             if active is None or active != session or current_profile is None:
                 continue
-            for path, buttons in pressed.items():
-                physical = {codes[code] for code in buttons if code in codes}
-                for action in tracker.update(
-                    path, physical, current_profile, time.monotonic()
-                ):
-                    if action == "quit":
-                        close_game()
-                        break
-                    key = shortcuts.menu_key(current_game["system"])
-                    if key:
-                        try:
-                            focused = subprocess.run(
-                                ["xdotool", "getactivewindow", "getwindowpid"],
-                                capture_output=True,
-                                text=True,
-                                timeout=3,
-                                check=True,
-                            ).stdout.strip()
-                            if focused == str(active.pid):
-                                subprocess.run(
-                                    ["xdotool", "key", "--clearmodifiers", key],
-                                    timeout=3,
-                                    check=True,
-                                )
-                        except (OSError, subprocess.SubprocessError) as error:
-                            if profile_runtime.active_session_id:
-                                profile_runtime.append_message(
-                                    profile_runtime.active_session_id,
-                                    "Warning: emulator menu shortcut failed: "
-                                    + str(error),
-                                    source="Launcher",
-                                )
-                if game is None:
+            for path in devices:
+                pending.extend(tracker.tick(path, current_profile, time.monotonic()))
+            for action in pending:
+                if game != active:
                     break
+                try:
+                    controller_action(action, active)
+                except (OSError, subprocess.SubprocessError) as error:
+                    try:
+                        if profile_runtime.active_session_id:
+                            profile_runtime.append_message(
+                                profile_runtime.active_session_id,
+                                "Warning: controller shortcut failed: " + str(error),
+                                source="Launcher",
+                            )
+                    except (OSError, ValueError):
+                        print("Controller shortcut failed:", error, flush=True)
 
 
 def sunshine_log(pipe):

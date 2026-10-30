@@ -18,6 +18,95 @@ sys.modules["profiles"] = profiles
 spec.loader.exec_module(profiles)
 profile_runtime = importlib.import_module("profile_runtime")
 retropad = importlib.import_module("retropad")
+shortcuts = importlib.import_module("shortcuts")
+
+
+class ShortcutTests(unittest.TestCase):
+    def setUp(self):
+        self.tracker = shortcuts.HeldShortcuts()
+        self.profile = profiles.effective_profile({}, "ps2")
+
+    def test_physical_view_y_uses_sunshine_sparse_xbox_codes(self):
+        self.profile["menu_shortcut"] = "view_y"
+        self.assertEqual(shortcuts.physical_buttons({307}), {"x"})
+        self.assertEqual(shortcuts.physical_buttons({308}), {"y"})
+        self.assertEqual(
+            self.tracker.update(
+                "pad", shortcuts.physical_buttons({314, 307}), self.profile, 0
+            ),
+            [],
+        )
+        self.assertEqual(
+            self.tracker.update(
+                "pad", shortcuts.physical_buttons({314, 308}), self.profile, 1
+            ),
+            ["menu"],
+        )
+
+    def test_menu_fires_once_until_the_chord_is_released(self):
+        buttons = {"l3", "r3"}
+        self.assertEqual(self.tracker.update("pad", buttons, self.profile, 0), ["menu"])
+        self.assertEqual(self.tracker.update("pad", buttons, self.profile, 10), [])
+        self.tracker.update("pad", {"l3"}, self.profile, 11)
+        self.assertEqual(
+            self.tracker.update("pad", buttons, self.profile, 12), ["menu"]
+        )
+
+    def test_quit_needs_two_continuous_seconds_and_does_not_repeat(self):
+        buttons = {"l3", "menu"}
+        self.assertEqual(self.tracker.update("pad", buttons, self.profile, 0), [])
+        self.assertEqual(self.tracker.update("pad", buttons, self.profile, 1.999), [])
+        self.assertEqual(self.tracker.update("pad", buttons, self.profile, 2), ["quit"])
+        self.assertEqual(self.tracker.update("pad", buttons, self.profile, 5), [])
+        self.tracker.update("pad", set(), self.profile, 6)
+        self.assertEqual(self.tracker.update("pad", buttons, self.profile, 7), [])
+        self.tracker.update("pad", {"l3"}, self.profile, 8)
+        self.assertEqual(self.tracker.update("pad", buttons, self.profile, 9), [])
+        self.assertEqual(
+            self.tracker.update("pad", buttons, self.profile, 11), ["quit"]
+        )
+
+    def test_pads_do_not_combine_chords_and_disconnect_clears_the_hold(self):
+        self.assertEqual(self.tracker.update("one", {"l3"}, self.profile, 0), [])
+        self.assertEqual(self.tracker.update("two", {"menu"}, self.profile, 3), [])
+        self.tracker.update("one", {"l3", "menu"}, self.profile, 4)
+        self.tracker.forget("one")
+        self.assertEqual(
+            self.tracker.update("one", {"l3", "menu"}, self.profile, 6), []
+        )
+
+    def test_share_guide_and_unknown_keys_are_decoded_separately(self):
+        self.assertEqual(shortcuts.physical_buttons({167, 316, 30}), {"share", "guide"})
+        self.profile["menu_shortcut"] = "share"
+        self.assertEqual(self.tracker.update("pad", {"guide"}, self.profile, 0), [])
+        self.assertEqual(
+            self.tracker.update("pad", {"share"}, self.profile, 1), ["menu"]
+        )
+
+    def test_platform_menu_keys_and_disabled_dolphin_menu(self):
+        expected = {"ps2": "Escape", "xbox": "F2", "dreamcast": "Tab", "gc": None}
+        for system in profiles.PLATFORMS:
+            self.assertEqual(shortcuts.menu_key(system), expected.get(system, "F1"))
+        profile = profiles.effective_profile({}, "gc")
+        self.assertEqual(self.tracker.update("pad", {"l3", "r3"}, profile, 0), [])
+
+    def test_fast_share_taps_preserve_transitions_within_one_read_batch(self):
+        self.profile["menu_shortcut"] = "share"
+        actions = []
+        for code, value in [(167, 1), (167, 0), (167, 1), (167, 0)]:
+            actions.extend(self.tracker.event("pad", code, value, self.profile, 0))
+        self.assertEqual(actions, ["menu", "menu"])
+        self.assertEqual(self.tracker.tick("pad", self.profile, 0.1), [])
+
+    def test_event_stream_preserves_holds_and_ignores_autorepeat(self):
+        self.assertEqual(self.tracker.event("pad", 317, 1, self.profile, 0), [])
+        self.assertEqual(self.tracker.event("pad", 315, 1, self.profile, 0), [])
+        self.assertEqual(self.tracker.event("pad", 315, 2, self.profile, 1), [])
+        self.assertEqual(self.tracker.tick("pad", self.profile, 1.999), [])
+        self.assertEqual(self.tracker.tick("pad", self.profile, 2), ["quit"])
+        self.assertEqual(self.tracker.tick("pad", self.profile, 3), [])
+        self.tracker.forget("pad")
+        self.assertEqual(self.tracker.tick("pad", self.profile, 4), [])
 
 
 class RuntimeTests(unittest.TestCase):
