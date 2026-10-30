@@ -1,8 +1,10 @@
 # The recorded base image requires its existing root init process.
 # trunk-ignore-all(trivy/DS-0002,checkov/CKV_DOCKER_3)
 FROM emulators-local-base:20261029
+RUN apt-get update && apt-get install -y --no-install-recommends python3-gi=3.56.2-1 gir1.2-gtk-3.0=3.24.52-0ubuntu1 && rm -rf /var/lib/apt/lists/*
 COPY integrations/sunshine/runtime.py integrations/sunshine/profile_runtime.py integrations/sunshine/retropad.py integrations/sunshine/session.py integrations/sunshine/shortcuts.py /opt/emulators/
 COPY integrations/sunshine/retroarch-launch.py /opt/emulators/retroarch-launch.py
+COPY integrations/sunshine/menu_model.py integrations/sunshine/session_overlay.py integrations/sunshine/session_menu.py /opt/emulators/
 COPY backend/handler/emulation/profiles.py /opt/emulators/profiles.py
 RUN chmod +x /opt/emulators/retroarch-launch.py
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 CMD ["/usr/bin/python3", "/opt/emulators/health.py"]

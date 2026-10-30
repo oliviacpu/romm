@@ -287,9 +287,17 @@ def prepare(system, rom):
             {
                 "Settings": {
                     "InternalResolution": str(scale),
-                    "AspectRatio": "1" if widescreen else "2",
+                    "AspectRatio": "1" if widescreen else "0",
                     "wideScreenHack": "False",
                 }
+            },
+        )
+    elif system == "xbox":
+        update_ini(
+            CONFIG / "xemu/xemu.toml",
+            {
+                "display.quality": {"surface_scale": str(scale)},
+                "display.ui": {"aspect_ratio": '"16x9"' if widescreen else '"auto"'},
             },
         )
     elif system == "dreamcast":

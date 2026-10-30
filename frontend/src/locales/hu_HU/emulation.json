@@ -11,10 +11,11 @@
   "controller": "Xbox-vezérlő",
   "controller-help": "Rendeljen Xbox-gombokat a konzol gombjaihoz. A megerősítés és visszalépés játékonként eltérhet.",
   "diagram-help": "Válassz konzolgombot, majd a hozzárendelni kívánt Xbox-gombot. A karok megtartják az emulátor beállításait.",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "Örökölt beállítás használata",
   "launch-help": "A mentett beállítások az Aurora vagy egy Sunshine-kliens következő indításakor lépnek életbe.",
   "mapping-unavailable": "Ehhez az emulátorhoz még nem érhető el a gombok átállítása.",
-  "menu-shortcut": "Emulátormenü megnyitása",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "A Dolphin itt nem kínál kontrollerrel kezelhető emulátormenüt. A kilépési gyorsgomb továbbra is működik.",
   "message-size": "Üzenetméret",
   "message-size-help": "A PCSX2 és RetroArch esetén használható. A tévés alapméret 200%.",
@@ -41,11 +42,11 @@
   "scope": "Játékspecifikus beállítás",
   "share-help": "A Share használatához a Sunshine Xbox Series virtuális kontrollere és a gombot továbbító kliens szükséges. Az Apple TV lefoglalhatja az Xbox/Guide és a View + Menu gombokat.",
   "shortcut-conflict": "Válassz eltérő gyorsgombokat a menühöz és a kilépéshez.",
-  "shortcut-help": "A menü megnyomásonként egyszer nyílik meg. A kilépéshez két másodpercig kell nyomva tartani. A gyorsgombok a fizikai Xbox-gombokat használják, és platformonként, illetve játékonként öröklődnek.",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "Kontroller-gyorsgombok",
   "stale": "Az indító nem küld állapotot. Beállításmódosítás előtt ellenőrizze a Sunshine-t.",
   "title": "RomM + Sunshine",
   "unassigned": "Nincs hozzárendelve",
   "unavailable": "Az integráció adatait nem sikerült betölteni.",
-  "widescreen-help": "A 16:9 módot csak natív támogatással vagy megfelelő javítással rendelkező játékhoz engedélyezze. Más játékok képe megnyúlhat vagy hibás lehet."
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }

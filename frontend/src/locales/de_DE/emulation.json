@@ -11,10 +11,11 @@
   "controller": "Xbox-Controller",
   "controller-help": "Xbox-Tasten den Konsolentasten zuordnen. Bestätigen und Zurück können je nach Spiel abweichen.",
   "diagram-help": "Wähle zuerst eine Konsolentaste und dann die zugehörige Xbox-Taste. Stickbewegungen behalten die Emulatorvorgaben.",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "Übergeordnete Einstellung verwenden",
   "launch-help": "Gespeicherte Einstellungen gelten beim nächsten Start über Aurora oder einen Sunshine-Client.",
   "mapping-unavailable": "Für diesen Emulator ist noch keine Tastenbelegung verfügbar.",
-  "menu-shortcut": "Emulatormenü öffnen",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "Dolphin bietet hier kein mit dem Controller bedienbares Emulatormenü. Der Kurzbefehl zum Beenden funktioniert weiterhin.",
   "message-size": "Textgröße",
   "message-size-help": "Gilt für PCSX2 und RetroArch. Die TV-Vorgabe ist 200%.",
@@ -41,11 +42,11 @@
   "scope": "Spielspezifische Anpassung",
   "share-help": "Share benötigt Sunshines virtuellen Xbox-Series-Controller und einen Client, der die Taste weiterleitet. Apple TV kann Xbox/Guide und View + Menu reservieren.",
   "shortcut-conflict": "Für Menü und Beenden unterschiedliche Kurzbefehle wählen.",
-  "shortcut-help": "Menü-Kurzbefehle reagieren einmal pro Tastendruck. Zum Beenden zwei Sekunden halten. Sie verwenden physische Xbox-Tasten und werden je Plattform und Spiel vererbt.",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "Controller-Kurzbefehle",
   "stale": "Der Starter meldet sich nicht mehr. Sunshine vor Änderungen prüfen.",
   "title": "RomM + Sunshine",
   "unassigned": "Nicht zugewiesen",
   "unavailable": "Integrationsdaten konnten nicht geladen werden.",
-  "widescreen-help": "16:9 nur bei Spielen mit nativer Breitbildunterstützung oder passendem Patch aktivieren. Sonst sind Verzerrungen oder Grafikfehler möglich."
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }

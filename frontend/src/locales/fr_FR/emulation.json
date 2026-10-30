@@ -11,10 +11,11 @@
   "controller": "Manette Xbox",
   "controller-help": "Associez les boutons Xbox aux boutons de la console. La validation et le retour peuvent varier selon le jeu.",
   "diagram-help": "Sélectionnez un bouton de la console, puis un bouton Xbox à lui attribuer. Les sticks conservent les réglages de l’émulateur.",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "Utiliser le réglage hérité",
   "launch-help": "Les réglages enregistrés seront appliqués au prochain lancement depuis Aurora ou un client Sunshine.",
   "mapping-unavailable": "La modification des boutons n’est pas encore disponible pour cet émulateur.",
-  "menu-shortcut": "Ouvrir le menu de l’émulateur",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "Dolphin ne propose pas ici de menu utilisable à la manette. Le raccourci pour quitter fonctionne toujours.",
   "message-size": "Taille des messages",
   "message-size-help": "Pour PCSX2 et RetroArch. La taille TV par défaut est de 200 %.",
@@ -41,11 +42,11 @@
   "scope": "Réglage propre au jeu",
   "share-help": "Share nécessite la manette virtuelle Xbox Series de Sunshine et un client qui transmet ce bouton. Apple TV peut réserver Xbox/Guide et View + Menu.",
   "shortcut-conflict": "Choisissez des raccourcis différents pour le menu et pour quitter.",
-  "shortcut-help": "Le menu s’ouvre une fois par pression. Pour quitter, maintenez deux secondes. Ces raccourcis utilisent les boutons physiques Xbox et sont hérités par plateforme et par jeu.",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "Raccourcis de la manette",
   "stale": "Le lanceur ne répond plus. Vérifiez Sunshine avant de modifier les réglages.",
   "title": "RomM + Sunshine",
   "unassigned": "Non attribué",
   "unavailable": "Impossible de charger les données de l’intégration.",
-  "widescreen-help": "Activez le 16:9 uniquement pour un jeu compatible ou avec un correctif adapté. Sinon, l’image peut être déformée ou présenter des défauts."
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }

@@ -11,10 +11,11 @@
   "controller": "Controler Xbox",
   "controller-help": "Asociați butoanele Xbox cu butoanele consolei. Confirmarea și anularea pot varia între jocuri.",
   "diagram-help": "Selectează un buton al consolei, apoi un buton Xbox pentru a-l atribui. Stickurile păstrează setările emulatorului.",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "Folosește setarea moștenită",
   "launch-help": "Setările salvate se aplică la următoarea lansare din Aurora sau orice client Sunshine.",
   "mapping-unavailable": "Remaparea butoanelor nu este încă disponibilă pentru acest emulator.",
-  "menu-shortcut": "Deschide meniul emulatorului",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "Dolphin nu oferă aici un meniu operabil cu controlerul. Comanda de ieșire funcționează în continuare.",
   "message-size": "Dimensiunea mesajelor",
   "message-size-help": "Se aplică pentru PCSX2 și RetroArch. Dimensiunea TV implicită este 200%.",
@@ -41,11 +42,11 @@
   "scope": "Setare pentru joc",
   "share-help": "Share necesită controlerul virtual Xbox Series din Sunshine și un client care transmite butonul. Apple TV poate rezerva Xbox/Guide și View + Menu.",
   "shortcut-conflict": "Alege comenzi diferite pentru meniu și ieșire.",
-  "shortcut-help": "Meniul se activează o dată la fiecare apăsare. Ieșirea necesită menținerea timp de două secunde. Comenzile folosesc butoanele fizice Xbox și se moștenesc pe platformă și joc.",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "Comenzi rapide pentru controler",
   "stale": "Lansatorul nu mai raportează. Verificați Sunshine înainte de a modifica setările.",
   "title": "RomM + Sunshine",
   "unassigned": "Neatribuit",
   "unavailable": "Datele integrării nu au putut fi încărcate.",
-  "widescreen-help": "Activați 16:9 doar pentru jocuri cu suport nativ sau un patch compatibil. Alte jocuri pot fi deformate sau pot afișa erori grafice."
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }

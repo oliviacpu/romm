@@ -132,7 +132,7 @@ class EmulationEndpointTests(unittest.TestCase):
     def test_rejects_unknown_buttons_and_unsupported_settings(self):
         for system, settings in [
             ("ps2", {"bindings": {"a": "../../secret"}}),
-            ("xbox", {"resolution": "1440p"}),
+            ("n64", {"resolution": "1440p"}),
             ("n64", {"aspect": "16:9"}),
             ("ps2", {"osd_scale": 500}),
             ("ps2", {"command": "touch /tmp/no"}),
@@ -183,7 +183,6 @@ class EmulationEndpointTests(unittest.TestCase):
             ("ps2", {"menu_shortcut": "unknown"}),
             ("ps2", {"quit_shortcut": "none"}),
             ("ps2", {"menu_shortcut": "share", "quit_shortcut": "share"}),
-            ("gc", {"menu_shortcut": "share"}),
         ]:
             with self.subTest(system=system, profile=profile):
                 result = self.client.put(
@@ -193,6 +192,24 @@ class EmulationEndpointTests(unittest.TestCase):
                 )
                 self.assertEqual(result.status_code, 422)
                 self.assertFalse((self.root / "profiles.json").exists())
+
+    def test_xbox_native_video_options_can_be_managed_from_romm(self):
+        result = self.client.put(
+            "/api/emulation/profiles/xbox",
+            headers=self.headers,
+            json={"revision": 0, "profile": {"resolution": "720p", "aspect": "16:9"}},
+        )
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json()["effective"]["resolution"], "720p")
+
+    def test_gamecube_accepts_the_common_session_menu_shortcut(self):
+        result = self.client.put(
+            "/api/emulation/profiles/gc",
+            headers=self.headers,
+            json={"revision": 0, "profile": {"menu_shortcut": "share"}},
+        )
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json()["effective"]["menu_shortcut"], "share")
 
     def test_platform_shortcut_change_cannot_conflict_with_a_game(self):
         save_profile(self.root, "ps2", self.game_id, {"quit_shortcut": "share"}, 0)

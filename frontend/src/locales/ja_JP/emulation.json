@@ -11,10 +11,11 @@
   "controller": "Xbox コントローラー",
   "controller-help": "各コンソールボタンに Xbox のボタンを割り当てます。決定とキャンセルはゲームによって異なる場合があります。",
   "diagram-help": "本体側のボタンを選び、割り当てるXboxボタンを選択します。スティックの移動はエミュレーターの設定を使います。",
+  "game-aspect": "Automatic (follow game)",
   "inherit": "継承した設定を使用",
   "launch-help": "保存した設定は、Aurora または Sunshine クライアントからの次回起動時に適用されます。",
   "mapping-unavailable": "このエミュレーターではボタンの割り当て変更にまだ対応していません。",
-  "menu-shortcut": "エミュレーターのメニューを開く",
+  "menu-shortcut": "Open session menu",
   "menu-unavailable": "ここではDolphinのメニューをコントローラーで操作できません。終了ショートカットは使えます。",
   "message-size": "メッセージの大きさ",
   "message-size-help": "PCSX2 と RetroArch に適用されます。テレビ向けの既定値は 200% です。",
@@ -41,11 +42,11 @@
   "scope": "ゲーム別の設定",
   "share-help": "ShareにはSunshineのXbox Series仮想コントローラーと、このボタンを転送するクライアントが必要です。Apple TVがXbox/GuideやView + Menuを使用する場合があります。",
   "shortcut-conflict": "メニューと終了には異なるショートカットを選んでください。",
-  "shortcut-help": "メニューは押すたびに1回開きます。終了には2秒の長押しが必要です。Xboxの物理ボタンを使い、プラットフォームとゲームごとに設定を継承します。",
+  "shortcut-help": "Open the same TV session menu on every platform. A confirms and B goes back. Menu activates once per press; quit requires a two-second hold. Shortcuts inherit per platform and game.",
   "shortcuts": "コントローラーのショートカット",
   "stale": "ランチャーからの応答がありません。設定変更前に Sunshine を確認してください。",
   "title": "RomM + Sunshine",
   "unassigned": "未割り当て",
   "unavailable": "連携データを読み込めませんでした。",
-  "widescreen-help": "16:9 は対応ゲームまたは互換パッチがある場合のみ有効にしてください。他のゲームでは引き伸ばしや表示不具合が発生する場合があります。"
+  "widescreen-help": "The stream keeps the TV aspect ratio. GameCube follows the game automatically; select 16:9 only when a game or compatible patch needs it. Unsupported widescreen can stretch images or cause glitches."
 }
