@@ -19,6 +19,8 @@ import type {
   UploadTargetPayload,
   UserNoteSchema,
   RomFiltersDict,
+  RomInspectionLimits,
+  RomInspectionResult,
 } from "@/__generated__";
 import { type CustomLimitOffsetPage_SimpleRomSchema_ as GetRomsResponse } from "@/__generated__/models/CustomLimitOffsetPage_SimpleRomSchema_";
 import api from "@/services/api";
@@ -26,6 +28,7 @@ import socket from "@/services/socket";
 import storeUpload from "@/stores/upload";
 import { getDownloadPath } from "@/utils/downloadPath";
 import { buildFormInput, type FormInputField } from "@/utils/formData";
+import { inspectionSample } from "@/utils/romIdentification";
 import { settleWithLimit } from "@/utils/settleWithLimit";
 import { toError } from "@/utils/toError";
 import { uploadPath } from "@/utils/uploadFiles";
@@ -44,6 +47,24 @@ const engineName = browser.getEngineName();
 const trackChunkUploadProgress = engineName !== "WebKit";
 
 export type PlatformUploadPolicy = PlatformUploadPolicyPayload;
+export type { RomInspectionLimits, RomInspectionResult };
+
+async function getInspectionLimits(): Promise<RomInspectionLimits> {
+  const { data } = await api.get<RomInspectionLimits>("/roms/upload/inspect");
+  return data;
+}
+
+async function inspectRomUpload(
+  file: File,
+  limits: RomInspectionLimits,
+): Promise<RomInspectionResult> {
+  const sample = await inspectionSample(file, limits);
+  const { data } = await api.post<RomInspectionResult>(
+    "/roms/upload/inspect",
+    sample,
+  );
+  return data;
+}
 
 async function getUploadPolicies(): Promise<
   Record<string, PlatformUploadPolicy>
@@ -173,6 +194,7 @@ async function uploadRoms({
   overwrite,
   batchId,
   pathForFile = uploadPath,
+  platformForFile,
 }: {
   platformId: number;
   filesToUpload: File[];
@@ -181,6 +203,7 @@ async function uploadRoms({
   overwrite?: boolean;
   batchId?: string;
   pathForFile?: (file: File) => string;
+  platformForFile?: (file: File) => number;
 }) {
   if (!socket.connected) socket.connect();
   const uploadStore = storeUpload();
@@ -190,7 +213,7 @@ async function uploadRoms({
     uploadStore.start(filePath);
 
     return uploadRomChunked({
-      platformId,
+      platformId: platformForFile?.(file) ?? platformId,
       file,
       filePath,
       romId,
@@ -1172,6 +1195,8 @@ async function getRomFilters() {
 export default {
   uploadRoms,
   getUploadPolicies,
+  getInspectionLimits,
+  inspectRomUpload,
   uploadGameFolder,
   getRoms,
   getRecentRoms,

@@ -9,6 +9,7 @@ import shlex
 import shutil
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from typing import Any, cast
 from uuid import uuid4
@@ -256,7 +257,14 @@ def _move_exclusive(source: Path, destination: Path) -> None:
             raise
 
 
-def finish_batch(fs_slug: str, batch_id: str, platform_id: int, user_id: int) -> str:
+def finish_batch(
+    fs_slug: str,
+    batch_id: str,
+    platform_id: int,
+    user_id: int,
+    *,
+    validate_file: Callable[[Path], None] | None = None,
+) -> str:
     manifest = load_batch(fs_slug, batch_id, platform_id, user_id)
     stage = _stage_dir(fs_slug, batch_id)
     source = stage / "game"
@@ -272,6 +280,9 @@ def finish_batch(fs_slug: str, batch_id: str, platform_id: int, user_id: int) ->
         raise UploadRejectedException("Game folder contains unexpected files")
     if any(path.is_symlink() for path in source.rglob("*")):
         raise UploadRejectedException("Game folder cannot contain symlinks")
+    if validate_file:
+        for path in expected:
+            validate_file(source / path)
     referenced = _validate_tracks(source)
     policy = upload_policies().get(fs_slug)
     if policy:

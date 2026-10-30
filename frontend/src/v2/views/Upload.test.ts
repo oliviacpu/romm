@@ -9,6 +9,8 @@ const {
   uploadPlatform,
   uploadRoms,
   getUploadPolicies,
+  getInspectionLimits,
+  inspectRomUpload,
   emit,
   warning,
   scanning,
@@ -17,6 +19,10 @@ const {
   uploadPlatform: vi.fn(),
   uploadRoms: vi.fn(),
   getUploadPolicies: vi.fn().mockResolvedValue({}),
+  getInspectionLimits: vi
+    .fn()
+    .mockResolvedValue({ head_bytes: 131072, tail_bytes: 1048576 }),
+  inspectRomUpload: vi.fn(),
   emit: vi.fn(),
   warning: vi.fn(),
   scanning: {
@@ -43,7 +49,12 @@ vi.mock("@/services/api/platform", () => ({
 }));
 
 vi.mock("@/services/api/rom", () => ({
-  default: { uploadRoms, getUploadPolicies },
+  default: {
+    uploadRoms,
+    getUploadPolicies,
+    getInspectionLimits,
+    inspectRomUpload,
+  },
 }));
 
 vi.mock("@/services/socket", () => ({
@@ -80,7 +91,7 @@ const stubs = {
   RDropzone: {
     emits: ["files"],
     template:
-      "<div><button class=\"dropzone\" @click=\"$emit('files', [{ name: 'game.rom', size: 3 }])\" /><button class=\"dropzone-mixed\" @click=\"$emit('files', [{ name: 'good.rom', size: 3 }, { name: 'bad.rom', size: 3 }])\" /></div>",
+      "<div><button class=\"dropzone\" @click=\"$emit('files', [{ name: 'game.rom', size: 3 }])\" /><button class=\"dropzone-mixed\" @click=\"$emit('files', [{ name: 'good.rom', size: 3 }, { name: 'bad.rom', size: 3 }])\" /><slot /></div>",
   },
   RBtn: {
     props: ["disabled"],
@@ -105,10 +116,23 @@ async function uploadOneFile() {
   await wrapper.get(".platform-select").trigger("click");
   await wrapper.get(".dropzone").trigger("click");
   await nextTick();
+  await flushPromises();
   await wrapper.get('[data-testid="upload-submit"]').trigger("click");
   await flushPromises();
   return wrapper;
 }
+
+const unknownInspection = {
+  format: "unknown",
+  platforms: [],
+  evidence: "unknown",
+  invalid: false,
+  members: [],
+  incompatible_platforms: [],
+};
+beforeEach(() => {
+  inspectRomUpload.mockResolvedValue(unknownInspection);
+});
 
 describe("Upload platform selection", () => {
   it("uses the unique slug when unsupported platforms share sentinel id -1", async () => {
@@ -169,6 +193,7 @@ describe("Upload follow-up scan", () => {
     await wrapper.get(".platform-select").trigger("click");
     await wrapper.get(".dropzone-mixed").trigger("click");
     await nextTick();
+    await flushPromises();
     await wrapper.get('[data-testid="upload-submit"]').trigger("click");
     await flushPromises();
     vi.runAllTimers();
@@ -190,5 +215,152 @@ describe("Upload follow-up scan", () => {
       "scan.scan-in-progress",
       expect.anything(),
     );
+  });
+});
+
+const detected = (platform: string) => ({
+  ...unknownInspection,
+  format: "cartridge",
+  platforms: [platform],
+  evidence: "archive-headers",
+});
+const n64 = platformFixture({
+  id: 64,
+  slug: "n64",
+  fs_slug: "custom-n64",
+  name: "Nintendo 64",
+});
+const genesis = platformFixture({
+  id: 16,
+  slug: "genesis",
+  fs_slug: "genesis",
+  name: "Sega Genesis",
+});
+
+async function mixedFixture(files: File[]) {
+  getSupportedPlatforms.mockResolvedValueOnce({ data: [n64, genesis] });
+  const wrapper = mount(Upload, { global: { stubs } });
+  await flushPromises();
+  wrapper.findComponent(stubs.RDropzone).vm.$emit("files", files);
+  await flushPromises();
+  return wrapper;
+}
+
+describe("Content-based upload destinations", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    scanning.scanning = false;
+  });
+
+  it("uploads a mixed batch to separate detected platforms without a global selection", async () => {
+    const first = new File(["n64"], "first.zip");
+    const second = new File(["genesis"], "second.zip");
+    inspectRomUpload
+      .mockResolvedValueOnce(detected("n64"))
+      .mockResolvedValueOnce(detected("genesis"));
+    uploadRoms.mockResolvedValueOnce([
+      { status: "fulfilled" },
+      { status: "fulfilled" },
+    ]);
+    const wrapper = await mixedFixture([first, second]);
+    expect(
+      wrapper.get('[data-testid="upload-submit"]').attributes("disabled"),
+    ).toBeUndefined();
+    await wrapper.get('[data-testid="upload-submit"]').trigger("click");
+    await flushPromises();
+    const options = uploadRoms.mock.lastCall![0];
+    expect(options.platformForFile(first)).toBe(64);
+    expect(options.platformForFile(second)).toBe(16);
+    vi.runAllTimers();
+    expect(emit).toHaveBeenCalledWith("scan", {
+      platforms: [64, 16],
+      type: "quick",
+      apis: [],
+    });
+    wrapper.unmount();
+  });
+
+  it("rejects a destination that conflicts with a detected cartridge header", async () => {
+    inspectRomUpload.mockResolvedValueOnce(detected("genesis"));
+    const wrapper = await mixedFixture([new File(["data"], "game.zip")]);
+    wrapper
+      .findAllComponents(stubs.PlatformSelect)[1]!
+      .vm.$emit("update:modelValue", "n64");
+    await nextTick();
+    expect(wrapper.text()).toContain("common.upload-platform-conflict");
+    expect(
+      wrapper.get('[data-testid="upload-submit"]').attributes("disabled"),
+    ).toBeDefined();
+    wrapper.unmount();
+  });
+
+  it("requires a deliberate destination for an unidentified file", async () => {
+    const wrapper = await mixedFixture([new File(["data"], "unknown.bin")]);
+    expect(wrapper.text()).toContain("common.upload-platform-unidentified");
+    expect(
+      wrapper.get('[data-testid="upload-submit"]').attributes("disabled"),
+    ).toBeDefined();
+    wrapper
+      .findAllComponents(stubs.PlatformSelect)[1]!
+      .vm.$emit("update:modelValue", "n64");
+    await nextTick();
+    expect(
+      wrapper.get('[data-testid="upload-submit"]').attributes("disabled"),
+    ).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it("blocks an invalid archive even after a platform is selected", async () => {
+    inspectRomUpload.mockResolvedValueOnce({
+      ...unknownInspection,
+      format: "zip",
+      invalid: true,
+    });
+    const wrapper = await mixedFixture([new File(["zeros"], "bad.zip")]);
+    wrapper
+      .findAllComponents(stubs.PlatformSelect)[1]!
+      .vm.$emit("update:modelValue", "n64");
+    await nextTick();
+    expect(wrapper.text()).toContain("common.upload-invalid-file");
+    expect(
+      wrapper.get('[data-testid="upload-submit"]').attributes("disabled"),
+    ).toBeDefined();
+    wrapper.unmount();
+  });
+
+  it("keeps CHD files out of cartridge platforms even when the exact disc is unknown", async () => {
+    inspectRomUpload.mockResolvedValueOnce({
+      ...unknownInspection,
+      format: "chd",
+      incompatible_platforms: ["n64"],
+    });
+    const wrapper = await mixedFixture([new File(["chd"], "Seaman.chd")]);
+    wrapper
+      .findAllComponents(stubs.PlatformSelect)[1]!
+      .vm.$emit("update:modelValue", "n64");
+    await nextTick();
+    expect(
+      wrapper.get('[data-testid="upload-submit"]').attributes("disabled"),
+    ).toBeDefined();
+    wrapper.unmount();
+  });
+
+  it("shows inspection failure and retries without uploading", async () => {
+    inspectRomUpload.mockRejectedValueOnce(new Error("offline"));
+    const wrapper = await mixedFixture([new File(["data"], "game.zip")]);
+    expect(wrapper.text()).toContain("common.upload-inspection-failed");
+    expect(
+      wrapper.get('[data-testid="upload-submit"]').attributes("disabled"),
+    ).toBeDefined();
+    inspectRomUpload.mockResolvedValueOnce(detected("genesis"));
+    const retry = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "common.try-again")!;
+    await retry.trigger("click");
+    await flushPromises();
+    expect(
+      wrapper.get('[data-testid="upload-submit"]').attributes("disabled"),
+    ).toBeUndefined();
+    wrapper.unmount();
   });
 });
