@@ -1,3 +1,4 @@
+import controllerconsLicense from "@/v2/assets/controllers/CONTROLLERCONS-LICENSE.txt?url&no-inline";
 import dreamcast from "@/v2/assets/controllers/dreamcast.svg?no-inline";
 import ds from "@/v2/assets/controllers/ds-lite.svg?no-inline";
 import gba from "@/v2/assets/controllers/game-boy-advance.svg?no-inline";
@@ -22,6 +23,7 @@ interface Artwork {
   controls: Record<string, Point>;
   marks: Record<string, string>;
   rear?: string[];
+  license?: string;
 }
 const directions = (
   x: number,
@@ -35,6 +37,7 @@ const directions = (
 });
 const playstation: Artwork = {
   source: ps,
+  license: controllerconsLicense,
   model: "DualShock 2",
   viewBox: "-3 -4 70 62",
   controls: {
@@ -83,6 +86,7 @@ const sega: Artwork = {
 export const controllerArtwork: Record<string, Artwork> = {
   "xbox-series": {
     source: series,
+    license: controllerconsLicense,
     model: "Xbox Wireless Controller (Series X|S)",
     viewBox: "-3 -4 70 62",
     controls: {
@@ -118,6 +122,7 @@ export const controllerArtwork: Record<string, Artwork> = {
   psx: { ...playstation, model: "DualShock" },
   gc: {
     source: gc,
+    license: controllerconsLicense,
     model: "Nintendo GameCube Controller",
     viewBox: "-3 0 70 60",
     controls: {
@@ -136,6 +141,7 @@ export const controllerArtwork: Record<string, Artwork> = {
   },
   dreamcast: {
     source: dreamcast,
+    license: controllerconsLicense,
     model: "Dreamcast Controller (HKT-7700)",
     viewBox: "-3 -8 70 76",
     controls: {
@@ -153,6 +159,7 @@ export const controllerArtwork: Record<string, Artwork> = {
   },
   xbox: {
     source: xbox,
+    license: controllerconsLicense,
     model: "Xbox Controller S",
     viewBox: "-3 -4 70 66",
     controls: {
@@ -177,6 +184,7 @@ export const controllerArtwork: Record<string, Artwork> = {
   segacd: sega,
   sms: {
     source: sms,
+    license: controllerconsLicense,
     model: "Sega Master System Control Pad",
     viewBox: "-3 17 70 32",
     controls: {
@@ -188,6 +196,7 @@ export const controllerArtwork: Record<string, Artwork> = {
   },
   nes: {
     source: nes,
+    license: controllerconsLicense,
     model: "NES Controller (NES-004)",
     viewBox: "-3 17 70 32",
     controls: {
@@ -201,6 +210,7 @@ export const controllerArtwork: Record<string, Artwork> = {
   },
   snes: {
     source: snes,
+    license: controllerconsLicense,
     model: "Super NES Controller",
     viewBox: "-3 13 70 36",
     controls: {
@@ -288,6 +298,7 @@ export const controllerArtwork: Record<string, Artwork> = {
   },
   n64: {
     source: n64,
+    license: controllerconsLicense,
     model: "Nintendo 64 Controller (NUS-005)",
     viewBox: "-3 -7 70 75",
     controls: {

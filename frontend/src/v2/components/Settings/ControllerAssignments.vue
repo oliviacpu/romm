@@ -187,6 +187,16 @@ function enabled(key: string) {
         </div>
       </template>
     </div>
+    <RBtn
+      v-if="art?.license"
+      :href="art.license"
+      target="_blank"
+      rel="noopener"
+      variant="text"
+      size="small"
+      class="controller-assignments__credit"
+      >Controllercons · OFL-1.1</RBtn
+    >
   </figure>
 </template>
 
@@ -243,6 +253,9 @@ svg {
 .controller-assignments__hit:focus-visible {
   opacity: 1;
   outline: 2px solid var(--r-color-brand-primary);
+}
+.controller-assignments__credit {
+  margin-top: var(--r-space-2);
 }
 .controller-assignments__current {
   display: flex;
